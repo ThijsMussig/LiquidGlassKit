@@ -118,6 +118,29 @@ struct LiquidGlass {
         backgroundTextureBlurRadius: 0.3,
         tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0, green: 0.04958364581, blue: 0.09951775161, alpha: 0.7981493615) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }//.systemBackground.withAlphaComponent(0.8),
     )
+
+    /// Same as regular but with no material tint — fully-transparent glass with only refraction.
+    static let clear = Self.init(
+        shaderUniforms: .init(
+            materialTint: .zero,  // Explicitly zero — no white/dark tint at all
+            glassThickness: 10,
+            refractiveIndex: 1.5,
+            dispersionStrength: 5,
+            fresnelDistanceRange: 70,
+            fresnelIntensity: 0,
+            fresnelEdgeSharpness: 0,
+            glareDistanceRange: 30,
+            glareAngleConvergence: 0.1,
+            glareOppositeSideBias: 1,
+            glareIntensity: 0.1,
+            glareEdgeSharpness: -0.15,
+            glareDirectionOffset: -.pi / 4,
+        ),
+        backgroundTextureSizeCoefficient: 1,
+        backgroundTextureScaleCoefficient: 0.2,
+        backgroundTextureBlurRadius: 0.25,
+        tintColor: nil
+    )
 }
 
 final class BackdropView: UIView {
@@ -191,9 +214,22 @@ final class LiquidGlassRenderer {
 #if SWIFT_PACKAGE
         let library = try! device.makeDefaultLibrary(bundle: .module)
 #else
+        // Resolve shader bundle: prefer a bundle embedded next to the binary (normal app / Swift Package
+        // non-module builds), then fall back to the jailbreak tweak installation path.
         let mainBundle = Bundle(for: LiquidGlassView.self)
-        let bundleURL = mainBundle.url(forResource: "LiquidGlassKitShaderResources", withExtension: "bundle")!
-        let library = try! device.makeDefaultLibrary(bundle: Bundle(url: bundleURL)!)
+        let resolvedBundleURL: URL
+        if let embeddedURL = mainBundle.url(forResource: "LiquidGlassKitShaderResources", withExtension: "bundle") {
+            resolvedBundleURL = embeddedURL
+        } else {
+            // Jailbreak tweak layout – support both rootless (/var/jb prefix, Palera1n/Dopamine)
+            // and rootful (no prefix, Unc0ver/Taurine).
+            let jbPrefix = FileManager.default.fileExists(atPath: "/var/jb") ? "/var/jb" : ""
+            resolvedBundleURL = URL(fileURLWithPath: "\(jbPrefix)/Library/LiquidGlass/LiquidGlassKitShaderResources.bundle")
+        }
+        guard let shaderBundle = Bundle(url: resolvedBundleURL) else {
+            fatalError("[LiquidGlass] Could not open shader bundle at \(resolvedBundleURL.path)")
+        }
+        let library = try! device.makeDefaultLibrary(bundle: shaderBundle)
 #endif
 
         let vertexFunction = library.makeFunction(name: "fullscreenQuad")!

@@ -1,0 +1,298 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.LiquidGlassKit-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/sources",
+      "importPath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassEffectView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSlider.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSwitch.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidLensView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/ZeroCopyBridge.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/swift-version-39A003F1D5018C15.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "LiquidGlassKit",
+      "moduleOutputPath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/Modules/LiquidGlassKit.swiftmodule",
+      "objects" : [
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.swift.o",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.swift.o",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.swift.o",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.swift.o",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.swift.o",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/include/LiquidGlassKit-Swift.h",
+        "-swift-version",
+        "6",
+        "-Xfrontend",
+        "-experimental-lazy-typecheck",
+        "-Xfrontend",
+        "-experimental-skip-all-function-bodies",
+        "-Xfrontend",
+        "-experimental-allow-module-with-compiler-errors",
+        "-Xfrontend",
+        "-empty-abi-descriptor",
+        "-plugin-path",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "liquidglasskit"
+      ],
+      "outputFileMapPath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/Modules/LiquidGlassKit.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : true,
+      "sources" : [
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassEffectView.swift",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSlider.swift",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSwitch.swift",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassView.swift",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidLensView.swift",
+        "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/ZeroCopyBridge.swift"
+      ],
+      "tempsPath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "LiquidGlassKit" : [
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "LiquidGlassKit",
+      "-package-name",
+      "liquidglasskit",
+      "-c",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassEffectView.swift",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSlider.swift",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSwitch.swift",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassView.swift",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidLensView.swift",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/ZeroCopyBridge.swift",
+      "-I",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/include/LiquidGlassKit-Swift.h",
+      "-swift-version",
+      "6",
+      "-Xfrontend",
+      "-experimental-lazy-typecheck",
+      "-Xfrontend",
+      "-experimental-skip-all-function-bodies",
+      "-Xfrontend",
+      "-experimental-allow-module-with-compiler-errors",
+      "-Xfrontend",
+      "-empty-abi-descriptor",
+      "-plugin-path",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "liquidglasskit",
+      "-driver-use-frontend-path",
+      "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "LiquidGlassKit" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassEffectView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSlider.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassSwitch.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidGlassView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/LiquidLensView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/liquid glass tweak/liquidglasskit/Sources/LiquidGlassKit/ZeroCopyBridge.swift"
+        }
+      ],
+      "outputFilePath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/sources"
+    },
+    "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/swift-version-39A003F1D5018C15.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Volumes/T7/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Volumes/T7/liquid glass tweak/liquidglasskit/.build/index-build/arm64-apple-macosx/debug/swift-version-39A003F1D5018C15.txt"
+    }
+  }
+}

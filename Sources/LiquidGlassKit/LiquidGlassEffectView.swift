@@ -82,7 +82,7 @@ public class LiquidGlassEffect: UIVisualEffect {
         var liquidGlass: LiquidGlass {
             switch self {
             case .regular: .regular
-            case .clear: .regular // TODO: Add clear LiquidGlass preset.
+            case .clear: .clear
             }
         }
     }
