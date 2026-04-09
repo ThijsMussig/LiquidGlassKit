@@ -1,0 +1,3 @@
+[submodule "liquidglasskit"]
+	path = liquidglasskit
+	url = https://github.com/ThijsMussig/LiquidGlassKit.git

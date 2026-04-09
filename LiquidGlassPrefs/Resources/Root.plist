@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>title</key>
+    <string>LiquidGlass</string>
+    <key>items</key>
+    <array>
+
+        <!-- Master toggle -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>General</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>enabled</string>
+            <key>label</key>
+            <string>Enable LiquidGlass</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+
+        <!-- Per-element toggles -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>Elements</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>dockEnabled</string>
+            <key>label</key>
+            <string>Dock</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>folderEnabled</string>
+            <key>label</key>
+            <string>Folders</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>switchEnabled</string>
+            <key>label</key>
+            <string>Switches</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>sliderEnabled</string>
+            <key>label</key>
+            <string>Sliders</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>notificationEnabled</string>
+            <key>label</key>
+            <string>Notifications</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>mediaPlayerEnabled</string>
+            <key>label</key>
+            <string>Media Player</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+
+        <!-- Respring -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>footerText</key>
+            <string>A respring is required for changes to take effect.</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>Respring</string>
+            <key>action</key>
+            <string>respring</string>
+        </dict>
+
+    </array>
+</dict>
+</plist>

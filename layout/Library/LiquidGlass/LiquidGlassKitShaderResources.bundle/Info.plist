@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Bundle Info.plist for the compiled Metal shader library.
+  Installed to /Library/LiquidGlass/LiquidGlassKitShaderResources.bundle/
+  alongside default.metallib (produced by `make` pre-step).
+-->
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourhandle.liquidglass.shaders</string>
+    <key>CFBundleName</key>
+    <string>LiquidGlassKitShaderResources</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>MinimumOSVersion</key>
+    <string>14.0</string>
+</dict>
+</plist>

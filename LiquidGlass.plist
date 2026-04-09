@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LiquidGlass.plist  –  Substrate / ElleKit load filter
+  Injects into every process that links UIKit (all apps + SpringBoard).
+-->
+<plist version="1.0">
+<dict>
+    <key>Filter</key>
+    <dict>
+        <key>Bundles</key>
+        <array>
+            <string>com.apple.UIKit</string>
+        </array>
+    </dict>
+</dict>
+</plist>

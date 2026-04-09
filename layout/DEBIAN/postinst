@@ -1,0 +1,4 @@
+#!/bin/sh
+# Let Sileo/Zebra show their own respring button.
+# Killing SpringBoard mid-install corrupts dpkg state.
+exit 0
