@@ -141,6 +141,29 @@ struct LiquidGlass {
         backgroundTextureBlurRadius: 0.25,
         tintColor: nil
     )
+
+    /// Like clear but with heavier blur and no tint — for panels that sit over busy content.
+    static let clearBlur = Self.init(
+        shaderUniforms: .init(
+            materialTint: .zero,
+            glassThickness: 10,
+            refractiveIndex: 1.45,
+            dispersionStrength: 4,
+            fresnelDistanceRange: 70,
+            fresnelIntensity: 0,
+            fresnelEdgeSharpness: 0,
+            glareDistanceRange: 30,
+            glareAngleConvergence: 0.1,
+            glareOppositeSideBias: 1,
+            glareIntensity: 0.08,
+            glareEdgeSharpness: -0.15,
+            glareDirectionOffset: -.pi / 4,
+        ),
+        backgroundTextureSizeCoefficient: 1,
+        backgroundTextureScaleCoefficient: 0.15,
+        backgroundTextureBlurRadius: 1.2,
+        tintColor: nil
+    )
 }
 
 final class BackdropView: UIView {

@@ -69,13 +69,13 @@ public class LiquidGlassEffectView: UIView, AnyVisualEffectView {
 public class LiquidGlassEffect: UIVisualEffect {
 
     public enum Style {
-        case regular, clear
+        case regular, clear, clearBlur
 
         @available(iOS 26.0, *)
         var nativeStyle: UIGlassEffect.Style {
             switch self {
             case .regular: .regular
-            case .clear: .clear
+            case .clear, .clearBlur: .clear
             }
         }
 
@@ -83,6 +83,7 @@ public class LiquidGlassEffect: UIVisualEffect {
             switch self {
             case .regular: .regular
             case .clear: .clear
+            case .clearBlur: .clearBlur
             }
         }
     }
