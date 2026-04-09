@@ -776,12 +776,22 @@ public func setupSliderOverlay(_ s: UISlider) {
     guard storedGlassSlider(for: s) == nil else { return }
     guard s.bounds.width > 0 else { return }
 
-    if let sv = s.superview {
-        let n = String(describing: type(of: sv))
-        guard !n.contains("Keyboard"),
-              !n.contains("InputMethod"),
-              !n.contains("InputAccessory") else { return }
+    // Walk up the hierarchy and skip sliders that live on the lock screen or
+    // inside the media player — those get glass from their parent card instead.
+    var p: UIView? = s.superview
+    while let ancestor = p {
+        let n = String(describing: type(of: ancestor))
+        // Media player container and its controls panel own their own glass.
+        if n == "CSAdjunctItemView" || n == "MPUSystemMediaControlsView" { return }
+        // Any lock screen surface (CoverSheet, CarPlay lock screen, etc.).
+        if n.contains("CoverSheet") || n.contains("LockScreen") || n.contains("Dashboard") { return }
+        // Keyboard/input accessories are already guarded below but catch them early too.
+        if n.contains("Keyboard") || n.contains("InputMethod") || n.contains("InputAccessory") { return }
+        p = ancestor.superview
     }
+    // Also check the window class name — lock screen runs in SBCoverSheetWindow / CSCoverSheetWindow.
+    if let winName = s.window.map({ String(describing: type(of: $0)) }),
+       winName.contains("CoverSheet") || winName.contains("LockScreen") { return }
 
     let gs = LiquidGlassSlider()
     gs.frame = s.bounds
