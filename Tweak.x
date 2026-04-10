@@ -72,6 +72,33 @@ extern void LGTeardownSliderOverlay(UISlider *s);
 %end
 %end
 
+// iOS 26: passcode digit buttons became CSPropertyAnimatingTouchPassThroughView.
+// Guard: only apply glass when the view is roughly square (it's a circular button, not a keypad
+// container). The keypad container is ~375pt wide; each button is ≤ 130pt — use that threshold.
+%group PasscodePropertyAnimating
+%hook CSPropertyAnimatingTouchPassThroughView
+- (void)layoutSubviews {
+    %orig;
+    UIView *v = (UIView *)self;
+    if (!v.window) return;
+    CGSize s = v.bounds.size;
+    if (s.width > 0 && s.width <= 130 && fabs(s.width - s.height) < 20)
+        LGApplyToPasscodeButton(v);
+}
+%end
+%end
+
+// Delete / backspace key on the passcode keypad.
+%group PasscodeDelete
+%hook SBUIPasscodeDeleteButton
+- (void)layoutSubviews {
+    %orig;
+    UIView *v = (UIView *)self;
+    if (v.window) LGApplyToPasscodeButton(v);
+}
+%end
+%end
+
 // Lock screen media player — CSAdjunctItemView is the outer rounded card that wraps the
 // Now Playing widget. MPUSystemMediaControlsView is its inner controls container.
 // We apply glass to CSAdjunctItemView (the whole card) and strip material from
@@ -332,6 +359,12 @@ static void LGKillBackdropsInLayer(CALayer *layer) {
 
     Class c5 = NSClassFromString(@"CSUIPasscodeKeypadButton");
     if (c5) %init(PasscodeCS, CSUIPasscodeKeypadButton = c5);
+
+    Class c5b = NSClassFromString(@"CSPropertyAnimatingTouchPassThroughView");
+    if (c5b) %init(PasscodePropertyAnimating, CSPropertyAnimatingTouchPassThroughView = c5b);
+
+    Class c5c = NSClassFromString(@"SBUIPasscodeDeleteButton");
+    if (c5c) %init(PasscodeDelete, SBUIPasscodeDeleteButton = c5c);
 
     Class c6 = NSClassFromString(@"SBFolderIconImageView");
     if (c6) %init(FolderIcon, SBFolderIconImageView = c6);

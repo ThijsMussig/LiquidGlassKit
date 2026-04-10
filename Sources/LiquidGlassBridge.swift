@@ -13,6 +13,7 @@ private func pref(_ key: String, default def: Bool = true) -> Bool {
 private func isEnabled()       -> Bool { pref("enabled") }
 private func isDockEnabled()   -> Bool { isEnabled() && pref("dockEnabled") }
 private func isFolderEnabled() -> Bool { isEnabled() && pref("folderEnabled") }
+private func isPasscodeEnabled()      -> Bool { isEnabled() && pref("passcodeEnabled") }
 private func isSwitchEnabled() -> Bool { isEnabled() && pref("switchEnabled") }
 private func isSliderEnabled()        -> Bool { isEnabled() && pref("sliderEnabled") }
 private func isNotificationEnabled()  -> Bool { isEnabled() && pref("notificationEnabled") }
@@ -203,7 +204,7 @@ private func stripButtonMaterial(in view: UIView) {
 
 @_silgen_name("LGApplyToPasscodeButton")
 public func applyToPasscodeButton(_ btn: UIView) {
-    guard isEnabled(), btn.bounds.width > 0 else { return }
+    guard isPasscodeEnabled(), btn.bounds.width > 0 else { return }
 
     // Always re-strip — SpringBoard restores material between layout passes
     stripButtonMaterial(in: btn)
