@@ -121,7 +121,7 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.2,
             glareDirectionOffset: .pi * 0.9,
         ),
-        backgroundTextureSizeCoefficient: 1.35, // Captures 35% wider area for lens to sample from
+        backgroundTextureSizeCoefficient: 1.0,  // Same capture area as slider thumb
         backgroundTextureScaleCoefficient: 1.0, // Full resolution — no texture downscale blur
         backgroundTextureBlurRadius: 0,
         shadowOverlay: true,
