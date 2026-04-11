@@ -102,27 +102,26 @@ struct LiquidGlass {
     }
 
     /// Like thumb but tuned for small pill elements (switches).
-    /// Magnification via refractiveIndex + wider capture area, but always at full
-    /// texture resolution (scaleCoefficient = 1.0) so the glass is sharp.
-    /// Zero dispersion eliminates the chromatic-aberration softness of the slider preset.
+    /// Light frosted-white tint, minimal refraction — matches the iOS 26 UISwitch
+    /// expanded thumb appearance: a subtle bright glass pill, not a dark magnifying lens.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
-            materialTint: .init(x: 0.9, y: 0.95, z: 1.0, w: 0.15),
-            glassThickness: 10,
-            refractiveIndex: 1.11,  // Same lens magnification as the slider thumb
-            dispersionStrength: 0,  // No RGB split — keeps the magnified image sharp
-            fresnelDistanceRange: 70,
-            fresnelIntensity: 0,
-            fresnelEdgeSharpness: 0,
-            glareDistanceRange: 30,
+            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.55), // Semi-opaque white = frosted look
+            glassThickness: 3,       // Minimal parallax so no dark edge ring
+            refractiveIndex: 1.03,   // Near-flat — background tint drives appearance, not bending
+            dispersionStrength: 0,   // No chromatic aberration
+            fresnelDistanceRange: 50,
+            fresnelIntensity: 0.25,  // Subtle bright rim
+            fresnelEdgeSharpness: 3,
+            glareDistanceRange: 25,
             glareAngleConvergence: 0,
             glareOppositeSideBias: 0,
-            glareIntensity: 0.01,
-            glareEdgeSharpness: -0.2,
+            glareIntensity: 0.03,
+            glareEdgeSharpness: -0.1,
             glareDirectionOffset: .pi * 0.9,
         ),
-        backgroundTextureSizeCoefficient: 1.0,  // Same capture area as slider thumb
-        backgroundTextureScaleCoefficient: 1.0, // Full resolution — no texture downscale blur
+        backgroundTextureSizeCoefficient: 1.0,
+        backgroundTextureScaleCoefficient: 1.0,
         backgroundTextureBlurRadius: 0,
         shadowOverlay: true,
         fullQuality: true,
