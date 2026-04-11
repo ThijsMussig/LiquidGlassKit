@@ -102,21 +102,21 @@ struct LiquidGlass {
     }
 
     /// Like thumb but tuned for small pill elements (switches).
-    /// Light frosted-white tint, minimal refraction — matches the iOS 26 UISwitch
-    /// expanded thumb appearance: a subtle bright glass pill, not a dark magnifying lens.
+    /// Translucent frosted glass — shows background through, slight cool-white tint,
+    /// no chromatic dispersion, near-flat refraction. No fresnel ring.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
-            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.55), // Semi-opaque white = frosted look
-            glassThickness: 3,       // Minimal parallax so no dark edge ring
-            refractiveIndex: 1.03,   // Near-flat — background tint drives appearance, not bending
+            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.28), // Light frosted tint — glass, not paint
+            glassThickness: 6,
+            refractiveIndex: 1.04,   // Very slight bend — glass feel without dark lens
             dispersionStrength: 0,   // No chromatic aberration
-            fresnelDistanceRange: 50,
-            fresnelIntensity: 0.25,  // Subtle bright rim
-            fresnelEdgeSharpness: 3,
-            glareDistanceRange: 25,
+            fresnelDistanceRange: 0,
+            fresnelIntensity: 0,     // No white ring
+            fresnelEdgeSharpness: 0,
+            glareDistanceRange: 20,
             glareAngleConvergence: 0,
             glareOppositeSideBias: 0,
-            glareIntensity: 0.03,
+            glareIntensity: 0.015,
             glareEdgeSharpness: -0.1,
             glareDirectionOffset: .pi * 0.9,
         ),
