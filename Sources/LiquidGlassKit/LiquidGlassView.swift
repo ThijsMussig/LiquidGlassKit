@@ -107,8 +107,8 @@ struct LiquidGlass {
     static let switchThumb = Self.init(
         shaderUniforms: .init(
             materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.22), // Soft translucent white pill
-            glassThickness: 4,           // Minimal depth — no dark parallax ring
-            refractiveIndex: 1.05,       // Barely any bending — just a hint of glass
+            glassThickness: 14,          // Thicker = wider refraction band around the edge
+            refractiveIndex: 1.25,       // More bending = wider visible refraction area
             dispersionStrength: 0,
             fresnelDistanceRange: 0,
             fresnelIntensity: 0,         // No white ring
