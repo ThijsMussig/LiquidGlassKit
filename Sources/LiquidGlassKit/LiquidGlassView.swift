@@ -1,4 +1,4 @@
-//
+ //
 //  LiquidGlassView.swift
 //  LiquidGlass
 //
@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Darwin  // dlopen / dlsym / RTLD_NOW for jbroot() runtime resolution
 internal import simd
 internal import MetalKit
 internal import MetalPerformanceShaders
@@ -44,6 +45,14 @@ struct LiquidGlass {
             SIMD4<Float>, SIMD4<Float>, SIMD4<Float>, SIMD4<Float>
         ) = (.zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero,
              .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero)
+        /// Motion reprojection UV offset. Zero after a fresh capture;
+        /// non-zero on throttled frames when the view has moved.
+        /// Written per-frame in draw() — NOT via updateUniforms().
+        var captureOffset: SIMD2<Float> = .zero
+        /// Mirrors backgroundTextureSizeCoefficient. Passed to the shader so it can remap
+        /// input.uv into the center fraction of the capture texture, preserving edge buffer
+        /// for captureOffset to shift into without immediately hitting clamp_to_edge.
+        var textureSizeCoefficient: Float = 1
     }
 
     let shaderUniforms: ShaderUniforms
@@ -52,6 +61,19 @@ struct LiquidGlass {
     let backgroundTextureBlurRadius: Double
     var tintColor: UIColor?
     var shadowOverlay: Bool = false
+    /// When true this view always renders at native device FPS with full shader
+    /// effects (no cheap-mode reduction). Used for interactive controls (sliders,
+    /// switches) where animation quality matters more than background-glass savings.
+    var fullQuality: Bool = false
+    /// When false the capture scheduler never runs and no backdrop/screen capture
+    /// is performed — the shader renders over a transparent background only.
+    /// Used for thumb views (sliders/switches) to avoid the CABackdropLayer blur.
+    var autoCapture: Bool = true
+    /// When true, always use the root-view render path instead of CABackdropLayer.
+    /// CABackdropLayer applies an OS-level compositor blur that cannot be turned off;
+    /// root-view capture (layer.render) produces a clean, unblurred snapshot.
+    /// Set on thumb presets so sliders/switches show sharp glass without any blur.
+    var forceRootCapture: Bool = false
 
     static func thumb(magnification: Double = 1) -> Self {
         .init(
@@ -74,6 +96,8 @@ struct LiquidGlass {
             backgroundTextureScaleCoefficient: magnification,
             backgroundTextureBlurRadius: 0,
             shadowOverlay: true,
+            fullQuality: true,
+            forceRootCapture: true,
         )
     }
 
@@ -113,7 +137,7 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.15,
             glareDirectionOffset: -.pi / 4,
         ),
-        backgroundTextureSizeCoefficient: 1,
+        backgroundTextureSizeCoefficient: 1.5,
         backgroundTextureScaleCoefficient: 0.2,
         backgroundTextureBlurRadius: 0.3,
         tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0, green: 0.04958364581, blue: 0.09951775161, alpha: 0.7981493615) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }//.systemBackground.withAlphaComponent(0.8),
@@ -136,7 +160,7 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.15,
             glareDirectionOffset: -.pi / 4,
         ),
-        backgroundTextureSizeCoefficient: 1,
+        backgroundTextureSizeCoefficient: 1.5,
         backgroundTextureScaleCoefficient: 0.2,
         backgroundTextureBlurRadius: 0.25,
         tintColor: nil
@@ -159,7 +183,7 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.15,
             glareDirectionOffset: -.pi / 4,
         ),
-        backgroundTextureSizeCoefficient: 1,
+        backgroundTextureSizeCoefficient: 1.5,
         backgroundTextureScaleCoefficient: 0.15,
         backgroundTextureBlurRadius: 1.2,
         tintColor: nil
@@ -182,6 +206,13 @@ final class BackdropView: UIView {
 
         // Configure backdrop layer properties (private API)
         layer.setValue(true, forKey: "windowServerAware")
+        // Shared group name: all LiquidGlassViews share one CABackdropLayer capture group.
+        // The WindowServer only composites the background once for all views in the same group
+        // instead of N separate captures — the single biggest GPU win on A11/A12.
+        // Each BackdropView MUST have a unique groupName. Sharing a groupName tells
+        // WindowServer to use one composited capture region for all views in the group —
+        // every view would then show the same background position, causing the glass to
+        // be misaligned on any view that isn't at the capture origin.
         layer.setValue(UUID().uuidString, forKey: "groupName")
 //        layer.setValue(1.0, forKey: "scale")  // Full resolution for capture
 //        layer.setValue(0.0, forKey: "bleedAmount")
@@ -228,11 +259,73 @@ final class LiquidGlassRenderer {
     let device: MTLDevice
     let pipelineState: MTLRenderPipelineState
 
+    /// One shared command queue for ALL LiquidGlassViews.
+    /// The Metal driver serializes work per-queue; sharing one queue reduces driver overhead
+    /// compared to N independent queues, and lets Metal track cross-view texture dependencies
+    /// automatically (crucial for the shared async blur → render ordering).
+    let commandQueue: MTLCommandQueue
+
+    /// True on A11/A12-class hardware (iPhone X/8/11). Detected via GPU memory budget.
+    /// These devices have ≤1.5 GB recommended working set vs 4 GB+ on A14+.
+    let isLowPerformanceDevice: Bool
+
+    /// Resolve a jailbreak-relative path (e.g. "/Library/LiquidGlass/…") to its real
+    /// filesystem path under the active bootstrap:
+    ///
+    ///  • RootHide — calls jbroot() from libroothide (pre-loaded by the bootstrap) via
+    ///    dlsym. RootHide installs files to /var/jb in the .deb but remaps that prefix
+    ///    to a UUID-randomised hidden location at runtime; only jbroot() gives the real path.
+    ///
+    ///  • Rootless (Palera1n / Dopamine) — /var/jb prefix, no remapping needed.
+    ///
+    ///  • Rootful (Unc0ver / Taurine) — no prefix.
+    static func jbRealPath(_ relativePath: String) -> String {
+        // 1. Try RootHide's jbroot() — pre-loaded into every process, resolved by dlsym.
+        //    libroothide exports the symbol "jbroot" as a C function: const char*(const char*)
+        if let sym = dlsym(dlopen(nil, RTLD_NOW), "jbroot") {
+            typealias JBRootFn = @convention(c) (UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+            let fn = unsafeBitCast(sym, to: JBRootFn.self)
+            if let result = relativePath.withCString({ fn($0) }) {
+                return String(cString: result)
+            }
+        }
+        // 2. Rootless: prepend /var/jb
+        if FileManager.default.fileExists(atPath: "/var/jb") {
+            return "/var/jb" + relativePath
+        }
+        // 3. Rootful: use path as-is
+        return relativePath
+    }
+
+    /// Number of LiquidGlassViews currently attached to a window.
+    /// Used to auto-switch to cheap mode when many glass views are visible at once.
+    private(set) var activeViewCount: Int = 0
+
+    /// When true, shaders skip expensive dispersion/glare and capture runs at reduced scale.
+    /// Automatically true on low-perf devices or when > 2 views are active.
+    var shouldUseCheapMode: Bool {
+        isLowPerformanceDevice || activeViewCount > 2
+    }
+
+    func registerView()   { activeViewCount += 1 }
+    func unregisterView() { activeViewCount = max(0, activeViewCount - 1) }
+
     private init() {
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("Metal not supported")
         }
         self.device = device
+
+        // Shared command queue — created once, reused by all LiquidGlassViews.
+        guard let queue = device.makeCommandQueue() else {
+            fatalError("Failed to create Metal command queue")
+        }
+        self.commandQueue = queue
+
+        // A11/A12 GPU family (apple4/apple5) cannot run the full glass effect stack
+        // across many simultaneous views without dropping frames. apple6 = A13+.
+        // supportsFamily(_:) is available on iOS 13+, safe for our iOS 14 deployment target.
+        self.isLowPerformanceDevice = !device.supportsFamily(.apple6)
 
 #if SWIFT_PACKAGE
         let library = try! device.makeDefaultLibrary(bundle: .module)
@@ -244,10 +337,19 @@ final class LiquidGlassRenderer {
         if let embeddedURL = mainBundle.url(forResource: "LiquidGlassKitShaderResources", withExtension: "bundle") {
             resolvedBundleURL = embeddedURL
         } else {
-            // Jailbreak tweak layout – support both rootless (/var/jb prefix, Palera1n/Dopamine)
-            // and rootful (no prefix, Unc0ver/Taurine).
-            let jbPrefix = FileManager.default.fileExists(atPath: "/var/jb") ? "/var/jb" : ""
-            resolvedBundleURL = URL(fileURLWithPath: "\(jbPrefix)/Library/LiquidGlass/LiquidGlassKitShaderResources.bundle")
+            // Jailbreak tweak layout. Resolve the path using whichever bootstrap is active:
+            //
+            //  • RootHide: files are installed to /var/jb/ in the .deb, but RootHide's detection
+            //    bypass remaps /var/jb to a UUID-randomised hidden path at runtime. The only
+            //    correct way to get the real path is via jbroot() from libroothide, which is
+            //    pre-loaded into every process by the bootstrap. We call it through dlsym so
+            //    we don't need to link against libroothide at build time.
+            //
+            //  • Rootless (Palera1n / Dopamine): plain /var/jb prefix, no remapping.
+            //
+            //  • Rootful (legacy Unc0ver / Taurine): no prefix at all.
+            let relative = "/Library/LiquidGlass/LiquidGlassKitShaderResources.bundle"
+            resolvedBundleURL = URL(fileURLWithPath: LiquidGlassRenderer.jbRealPath(relative))
         }
         guard let shaderBundle = Bundle(url: resolvedBundleURL) else {
             fatalError("[LiquidGlass] Could not open shader bundle at \(resolvedBundleURL.path)")
@@ -271,16 +373,21 @@ final class LiquidGlassView: MTKView {
 
     let liquidGlass: LiquidGlass
 
-    var commandQueue: MTLCommandQueue!
+    // No per-instance commandQueue — use LiquidGlassRenderer.shared.commandQueue.
+    // Removing N per-instance queues eliminates N×(driver setup + scheduling overhead).
     var uniformsBuffer: MTLBuffer!
     var zeroCopyBridge: ZeroCopyBridge!
 
     // Background texture for the shader
     private var backgroundTexture: MTLTexture?
 
-    /// Whether to automatically capture superview on each frame. 
+    /// Whether to automatically capture superview on a background schedule.
     /// Set to false for manual control via `captureBackground()`.
-    var autoCapture: Bool = true
+    var autoCapture: Bool = true {
+        didSet {
+            if autoCapture { startCaptureScheduler() } else { stopCaptureScheduler() }
+        }
+    }
 
     var touchPoint: CGPoint? = nil
 
@@ -292,32 +399,130 @@ final class LiquidGlassView: MTKView {
     // Backdrop capture view (stays in superview, contains only CABackdropLayer)
     private let backdropView = BackdropView()
 
+    // MARK: - Capture scheduler (fully decoupled from the render CADisplayLink)
+    //
+    // The MTKView display link drives draw() at 30/20 fps — pure GPU work only.
+    // A *separate* CADisplayLink runs at a lower preferred rate and is solely
+    // responsible for CPU-side background captures. This guarantees the render
+    // loop never waits on a screen capture; if a capture takes 8 ms the GPU
+    // still gets its command buffer on time.
+    //
+    // Rate:  normal  → every 2nd display link tick at 30 Hz ≈ 15 captures/sec
+    //        A11/A12 → every 3rd tick   at 20 Hz ≈  7 captures/sec
+    private var captureDisplayLink: CADisplayLink?
+    private var captureTick: Int = 0
+    private var captureTickInterval: Int {
+        LiquidGlassRenderer.shared.isLowPerformanceDevice ? 3 : 2
+    }
+
+    /// Effective texture scale coefficient — capped at 7% on A11/A12 for ~5× bandwidth savings.
+    /// MUST be used for BOTH buffer allocation (layoutSubviews) and capture rendering so the
+    /// ZeroCopyBridge pixel buffer dimensions always match what is rendered into it.
+    /// fullQuality views (sliders, switches) are exempt — they need full-res texture.
+    private var effectiveTextureScaleCoefficient: Double {
+        if liquidGlass.fullQuality { return liquidGlass.backgroundTextureScaleCoefficient }
+        return LiquidGlassRenderer.shared.isLowPerformanceDevice
+            ? min(liquidGlass.backgroundTextureScaleCoefficient, 0.07)
+            : liquidGlass.backgroundTextureScaleCoefficient
+    }
+
+    // Motion reprojection state — records where the background was last captured from.
+    // draw() computes the UV delta each frame and injects it as captureOffset so the
+    // glass stays aligned between captures (important on A11 with 7 captures/sec).
+    private var lastCapturedBounds: CGRect = .zero
+    private var lastCapturedCenter: CGPoint = .zero
+
+    // App-state pause observers — held strongly so they stay active; removed on window leave.
+    private var appBackgroundObserver: NSObjectProtocol?
+    private var appForegroundObserver: NSObjectProtocol?
+
     init(_ liquidGlass: LiquidGlass) {
         self.liquidGlass = liquidGlass
 
         super.init(frame: .zero, device: LiquidGlassRenderer.shared.device)
-        
+
+        // Apply preset's autoCapture flag before willMove fires.
+        autoCapture = liquidGlass.autoCapture
+
         if liquidGlass.shadowOverlay {
             let shadowView = ShadowView()
             addSubview(shadowView)
             self.shadowView = shadowView
         }
         setupMetal()
-//        layer.shouldRasterize = true
-//        preferredFramesPerSecond = 30
-//        clipsToBounds = true
-//        autoResizeDrawable = false
-//        contentMode = .center
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
 
+    override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        if newWindow != nil {
+            LiquidGlassRenderer.shared.registerView()
+            startCaptureScheduler()
+            appBackgroundObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.didEnterBackgroundNotification,
+                object: nil, queue: .main
+            ) { [weak self] _ in
+                // Pause the render loop and kill the capture scheduler — nothing is visible.
+                self?.isPaused = true
+                self?.stopCaptureScheduler()
+                self?.backgroundTexture = nil
+            }
+            appForegroundObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.willEnterForegroundNotification,
+                object: nil, queue: .main
+            ) { [weak self] _ in
+                self?.isPaused = false
+                self?.startCaptureScheduler()
+            }
+        } else {
+            LiquidGlassRenderer.shared.unregisterView()
+            stopCaptureScheduler()
+            if let t = appBackgroundObserver { NotificationCenter.default.removeObserver(t) }
+            if let t = appForegroundObserver { NotificationCenter.default.removeObserver(t) }
+            appBackgroundObserver = nil
+            appForegroundObserver = nil
+        }
+    }
+
+    // MARK: - Capture scheduler
+
+    private func startCaptureScheduler() {
+        guard autoCapture, captureDisplayLink == nil else { return }
+        let dl = CADisplayLink(target: self, selector: #selector(captureSchedulerFired))
+        // Use .common so the scheduler fires even while a UIScrollView is tracking.
+        // Captures every captureTickInterval frames keep the texture fresh enough that
+        // captureOffset only needs to cover a few frames of movement (typically < 20pt),
+        // which stays well within the 16.7% buffer provided by sizeCoefficient = 1.5.
+        dl.add(to: .main, forMode: .common)
+        captureDisplayLink = dl
+        captureTick = captureTickInterval  // fire on very first tick
+    }
+
+    private func stopCaptureScheduler() {
+        captureDisplayLink?.invalidate()
+        captureDisplayLink = nil
+    }
+
+    @objc private func captureSchedulerFired() {
+        captureTick += 1
+        let boundsChanged = abs(bounds.width  - lastCapturedBounds.width)  > 1.0
+                         || abs(bounds.height - lastCapturedBounds.height) > 1.0
+        let needsFirst = backgroundTexture == nil
+        if needsFirst || boundsChanged || captureTick >= captureTickInterval {
+            captureTick = 0
+            lastCapturedBounds = bounds
+            captureBackground()
+        }
+    }
+
     func setupMetal() {
         guard let device else { return }
 
-        commandQueue = device.makeCommandQueue()!
+        // Use the shared command queue instead of a per-instance one.
+        // One queue means fewer Metal driver serialisation points across all glass views.
 
         // Uniforms buffer (update per frame)
         uniformsBuffer = device.makeBuffer(length: MemoryLayout<LiquidGlass.ShaderUniforms>.stride, options: [])!
@@ -328,14 +533,29 @@ final class LiquidGlassView: MTKView {
         isOpaque = false
         layer.isOpaque = false
 
-        isPaused = false // Enable to manually control drawing via `draw(_:)`
-//        enableSetNeedsDisplay = true  // Allow setNeedsDisplay() to trigger draws
+        // framebufferOnly = true lets the driver skip the extra copy needed for
+        // sampling the drawable — valid here because we never read the framebuffer.
+        framebufferOnly = true
+
+        // Full-quality views (sliders, switches) always render at native device FPS.
+        // Background glass views are capped to halve GPU load.
+        if liquidGlass.fullQuality {
+            preferredFramesPerSecond = 0  // 0 = match display (60/120 Hz)
+        } else {
+            preferredFramesPerSecond = LiquidGlassRenderer.shared.isLowPerformanceDevice ? 20 : 30
+        }
+
+        isPaused = false
     }
 
     // MARK: - Background Capture
 
     func captureBackground() {
-        if #available(iOS 26.2, *) {
+        // CABackdropLayer (used by captureBackdrop) applies an OS compositor blur that
+        // cannot be disabled — use the root-view path for presets that need no blur.
+        if liquidGlass.forceRootCapture || {
+            if #available(iOS 26.2, *) { return true } else { return false }
+        }() {
             captureRootView()
         } else {
             captureBackdrop()
@@ -348,7 +568,7 @@ final class LiquidGlassView: MTKView {
         guard let rootView = findRootView() else { return }
 
         let sizeCoefficient = liquidGlass.backgroundTextureSizeCoefficient
-        let scaleCoefficient = layer.contentsScale * liquidGlass.backgroundTextureScaleCoefficient
+        let scaleCoefficient = layer.contentsScale * effectiveTextureScaleCoefficient
 
         // Determine our on-screen rect in the root view coordinate space.
         // IMPORTANT: During `UIView.animate`, the view's *model* layer jumps to the final frame
@@ -366,30 +586,27 @@ final class LiquidGlassView: MTKView {
                                        height: captureSize.height)
 
         backgroundTexture = zeroCopyBridge.render { context in
-            // Hide self temporarily for clean background capture
-            let wasHidden = isHidden
-            isHidden = true
-            defer { isHidden = wasHidden }
-
-            // Transform to render the portion of root view under our capture rect:
+            // No need to hide this view — MTKView uses CAMetalLayer whose Metal content
+            // is compositor-only and does NOT appear in layer.render(in:). Any attempt
+            // to hide or zero opacity causes CA to composite a blank frame → flicker.
             context.scaleBy(x: scaleCoefficient, y: scaleCoefficient)
             context.translateBy(x: -captureRectInRoot.origin.x, y: -captureRectInRoot.origin.y)
-//            context.interpolationQuality = .none
 
             let rootViewLayer = rootView.layer.presentation() ?? rootView.layer
             rootViewLayer.render(in: context)
         }
 
         blurTexture()
+        recordCaptureCenter()
     }
 
     /// Captures the background content via CABackdropLayer using drawHierarchy.
     /// Noticeable rendering delay.
     func captureBackdrop() {
         guard let superview else { return }
-        
+
         let sizeCoefficient = liquidGlass.backgroundTextureSizeCoefficient
-        let scaleCoefficient = layer.contentsScale * liquidGlass.backgroundTextureScaleCoefficient
+        let scaleCoefficient = layer.contentsScale * effectiveTextureScaleCoefficient
 
         // Calculate frame using presentation layer for smooth animation tracking
         let currentLayer = layer.presentation() ?? layer
@@ -407,33 +624,53 @@ final class LiquidGlassView: MTKView {
             superview.insertSubview(backdropView, belowSubview: self)
         }
         
-        // Capture using drawHierarchy (gets windowserver-composited content)
+        // MUST use drawHierarchy — CABackdropLayer content comes from WindowServer compositing
+        // and is NOT accessible via layer.render(in:). Only drawHierarchy captures it.
         backgroundTexture = zeroCopyBridge.render { context in
             context.scaleBy(x: scaleCoefficient, y: scaleCoefficient)
-
             UIGraphicsPushContext(context)
             backdropView.drawHierarchy(in: backdropView.bounds, afterScreenUpdates: false)
             UIGraphicsPopContext()
         }
 
         blurTexture()
+        recordCaptureCenter()
     }
 
     func blurTexture() {
         guard liquidGlass.backgroundTextureBlurRadius > 0,
               let device,
-              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let commandBuffer = LiquidGlassRenderer.shared.commandQueue.makeCommandBuffer(),
               var backgroundTexture else { return }
 
         // Apply GPU-accelerated Gaussian blur via MPS
-        // Scale blur radius to pixels
-        let sigma = Float(liquidGlass.backgroundTextureBlurRadius * layer.contentsScale)
+        // On A11/A12 textures are captured at 7% scale. A small blur multiplier smooths
+        // pixelation without washing out detail. 0.8× is a subtle polish pass — heavy
+        // blur (≥1.2×) makes the glass look foggy and hides the refractive distortion.
+        let blurRadius = LiquidGlassRenderer.shared.isLowPerformanceDevice
+            ? liquidGlass.backgroundTextureBlurRadius * 0.8
+            : liquidGlass.backgroundTextureBlurRadius
+        let sigma = Float(blurRadius * layer.contentsScale)
         let blur = MPSImageGaussianBlur(device: device, sigma: sigma)
         blur.edgeMode = .clamp
 
         blur.encode(commandBuffer: commandBuffer, inPlaceTexture: &backgroundTexture, fallbackCopyAllocator: nil)
+        // Do NOT call waitUntilCompleted() here — that blocks the main thread for the full
+        // blur duration every frame. Committing without waiting is safe: the shared command
+        // queue serialises the blur before the render encoder that reads backgroundTexture,
+        // so Metal's dependency tracking guarantees ordering automatically.
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+    }
+
+    /// Records the view's current presentation-layer midpoint in **window** coordinates
+    /// as the anchor for motion reprojection. Using the window (screen) coordinate space
+    /// means parent UIScrollView scrolling is visible as a position delta — superview
+    /// coordinates do NOT change when a scroll view's contentOffset changes because the
+    /// glass view's frame in its direct parent is fixed; only the window position moves.
+    private func recordCaptureCenter() {
+        guard let window else { return }
+        let l = layer.presentation() ?? layer
+        lastCapturedCenter = l.convert(CGPoint(x: l.bounds.midX, y: l.bounds.midY), to: window.layer)
     }
 
     func updateUniforms() {
@@ -483,6 +720,18 @@ final class LiquidGlassView: MTKView {
             uniforms.materialTint = tintColor.toSimdFloat4()
         }
 
+        // Cheap mode: when more than 2 glass views are active (e.g. notification stack)
+        // or on a low-performance device, disable expensive per-fragment effects that add
+        // GPU time without significantly changing the glass look at small sizes.
+        // Full-quality views (thumb in sliders/switches) are always exempt.
+        if !liquidGlass.fullQuality && LiquidGlassRenderer.shared.shouldUseCheapMode {
+            uniforms.dispersionStrength = 0
+            uniforms.glareIntensity = 0
+        }
+
+        // Keep textureSizeCoefficient in sync so the shader knows how to remap UVs.
+        uniforms.textureSizeCoefficient = Float(liquidGlass.backgroundTextureSizeCoefficient)
+
         uniformsBuffer.contents().assumingMemoryBound(to: LiquidGlass.ShaderUniforms.self).pointee = uniforms
 
 //        setNeedsDisplay()
@@ -494,7 +743,7 @@ final class LiquidGlassView: MTKView {
 
         updateUniforms()
 
-        let scale = layer.contentsScale * liquidGlass.backgroundTextureSizeCoefficient * liquidGlass.backgroundTextureScaleCoefficient
+        let scale = layer.contentsScale * liquidGlass.backgroundTextureSizeCoefficient * effectiveTextureScaleCoefficient
         let width = Int(bounds.width * scale)
         let height = Int(bounds.height * scale)
         zeroCopyBridge.setupBuffer(width: width, height: height)
@@ -503,15 +752,30 @@ final class LiquidGlassView: MTKView {
     }
 
     override func draw(_ rect: CGRect) {
-        // Auto-capture background from superview if enabled
-        if autoCapture {
-            captureBackground()
-        }
-        
+        // FAST PATH — pure GPU work only. Capture never happens here.
+        // Background texture is updated by the separate captureSchedulerFired() display link.
         guard let drawable = currentDrawable,
               let renderPassDesc = currentRenderPassDescriptor,
-              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let commandBuffer = LiquidGlassRenderer.shared.commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDesc) else { return }
+
+        // Motion reprojection: compute how far the view has moved on screen since the last
+        // capture and write the UV-space delta into the uniforms buffer so the shader corrects
+        // for it every frame. Using window (screen) coordinates is critical — superview coords
+        // are static during UIScrollView scrolling because the view's frame within its direct
+        // parent never changes; only the window-relative position reflects scroll movement.
+        if autoCapture, let window {
+            let l = layer.presentation() ?? layer
+            let screenPos = l.convert(CGPoint(x: l.bounds.midX, y: l.bounds.midY), to: window.layer)
+            let captureW = Float(bounds.width  * liquidGlass.backgroundTextureSizeCoefficient)
+            let captureH = Float(bounds.height * liquidGlass.backgroundTextureSizeCoefficient)
+            uniformsBuffer.contents()
+                .assumingMemoryBound(to: LiquidGlass.ShaderUniforms.self)
+                .pointee.captureOffset = SIMD2<Float>(
+                    captureW > 0 ? Float(screenPos.x - lastCapturedCenter.x) / captureW : 0,
+                    captureH > 0 ? Float(screenPos.y - lastCapturedCenter.y) / captureH : 0
+                )
+        }
 
         encoder.setRenderPipelineState(LiquidGlassRenderer.shared.pipelineState)
         encoder.setFragmentBuffer(uniformsBuffer, offset: 0, index: 0)
