@@ -106,9 +106,9 @@ struct LiquidGlass {
     /// no chromatic dispersion, near-flat refraction. No fresnel ring.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
-            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.28), // Light frosted tint — glass, not paint
-            glassThickness: 6,
-            refractiveIndex: 1.04,   // Very slight bend — glass feel without dark lens
+            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.42), // Light frosted tint — glass, not paint
+            glassThickness: 10,
+            refractiveIndex: 1.07,   // More visible glass bend
             dispersionStrength: 0,   // No chromatic aberration
             fresnelDistanceRange: 0,
             fresnelIntensity: 0,     // No white ring
