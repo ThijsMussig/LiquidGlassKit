@@ -4,12 +4,14 @@
 # Target device: arm64 iPhone/iPad running iOS 14.0 – 16.x (jailbroken)
 # ---------------------------------------------------------------
 
-export ARCHS = arm64
+export ARCHS = arm64 arm64e
 # clang:<sdk-version>:<deployment-target>  — iOS 26 SDK, deploy back to iOS 14
 export TARGET = iphone:clang:26.0:14.0
-# Rootless layout: files in layout/ are placed under /var/jb/ on device.
-# Required for Palera1n (iOS 15/16) and Dopamine. Safe to remove for rootful.
-export THEOS_PACKAGE_SCHEME = rootless
+# Default scheme is rootless. Pass THEOS_PACKAGE_SCHEME=roothide on the command
+# line (make THEOS_PACKAGE_SCHEME=roothide package) to produce the roothide .deb.
+# Both schemes install to /var/jb — RootHide remaps that to its hidden path at runtime.
+THEOS_PACKAGE_SCHEME ?= rootless
+export THEOS_PACKAGE_SCHEME
 # Swift 6 is required – internal import + trailing‐comma call syntax
 export SWIFT_VERSION = 6
 
