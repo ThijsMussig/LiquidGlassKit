@@ -106,21 +106,21 @@ struct LiquidGlass {
     /// no chromatic dispersion, near-flat refraction. No fresnel ring.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
-            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.05), // Near-clear center
-            glassThickness: 10,
-            refractiveIndex: 1.18,       // Subtle magnification, no UV overflow → no black edge
+            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.22), // Soft translucent white pill
+            glassThickness: 4,           // Minimal depth — no dark parallax ring
+            refractiveIndex: 1.05,       // Barely any bending — just a hint of glass
             dispersionStrength: 0,
-            fresnelDistanceRange: 80,
-            fresnelIntensity: 0.4,       // Soft bright rim, not a hard ring
-            fresnelEdgeSharpness: 0.2,
-            glareDistanceRange: 60,
-            glareAngleConvergence: 0.15,
-            glareOppositeSideBias: 1.2,
-            glareIntensity: 0.3,         // Visible streak without overpowering
-            glareEdgeSharpness: 0.1,
-            glareDirectionOffset: -.pi / 5,
+            fresnelDistanceRange: 0,
+            fresnelIntensity: 0,         // No white ring
+            fresnelEdgeSharpness: 0,
+            glareDistanceRange: 0,
+            glareAngleConvergence: 0,
+            glareOppositeSideBias: 0,
+            glareIntensity: 0,           // No starburst
+            glareEdgeSharpness: 0,
+            glareDirectionOffset: 0,
         ),
-        backgroundTextureSizeCoefficient: 1.5,
+        backgroundTextureSizeCoefficient: 1.2,
         backgroundTextureScaleCoefficient: 1.0,
         backgroundTextureBlurRadius: 0,
         shadowOverlay: true,
