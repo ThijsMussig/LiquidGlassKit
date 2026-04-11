@@ -101,6 +101,33 @@ struct LiquidGlass {
         )
     }
 
+    /// Like thumb but tuned for small pill elements (switches).
+    /// Zero dispersion and near-zero refraction prevent chromatic blur and magnification
+    /// artifacts that are visible on small 58×38pt views.
+    static let switchThumb = Self.init(
+        shaderUniforms: .init(
+            materialTint: .init(x: 0.9, y: 0.95, z: 1.0, w: 0.15),
+            glassThickness: 10,
+            refractiveIndex: 1.02,  // Near-flat: no visible magnification
+            dispersionStrength: 0,  // No chromatic aberration = sharp
+            fresnelDistanceRange: 70,
+            fresnelIntensity: 0,
+            fresnelEdgeSharpness: 0,
+            glareDistanceRange: 30,
+            glareAngleConvergence: 0,
+            glareOppositeSideBias: 0,
+            glareIntensity: 0.01,
+            glareEdgeSharpness: -0.2,
+            glareDirectionOffset: .pi * 0.9,
+        ),
+        backgroundTextureSizeCoefficient: 1.0,
+        backgroundTextureScaleCoefficient: 1.0,
+        backgroundTextureBlurRadius: 0,
+        shadowOverlay: true,
+        fullQuality: true,
+        forceRootCapture: true
+    )
+
     static let lens = Self.init(
         shaderUniforms: .init(
             glassThickness: 6,

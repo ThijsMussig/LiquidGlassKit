@@ -67,7 +67,7 @@ open class LiquidGlassSwitch: UIControl {
     private let contractedThumbView = UIView()
     
     /// The expanded thumb - transparent pill with border shown during interaction.
-    private let expandedThumbView = LiquidGlassView(.thumb())
+    private let expandedThumbView = LiquidGlassView(.switchThumb)
 
     // MARK: - Haptic Feedback
     
