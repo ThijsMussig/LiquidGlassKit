@@ -497,12 +497,14 @@ open class LiquidGlassSwitch: UIControl {
     
     open override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesCancelled(touches, with: event)
-        if isDragging {
-            finishDrag()
-        } else if isThumbExpanded {
-            // If the interaction is cancelled before a drag is recognized, return to resting state.
-            contractThumb(animated: true)
-        }
+        // Always restore original state silently on cancel — no action fired.
+        isDragging = false
+        isUpdatingStateProgrammatically = true
+        isOn = wasOnWhenDragStarted
+        isUpdatingStateProgrammatically = false
+        updateTrackColor(animated: true)
+        contractThumb(animated: true)
+        updateThumbPosition(animated: true)
     }
     
     // MARK: - Drag Helpers
@@ -542,26 +544,20 @@ open class LiquidGlassSwitch: UIControl {
     
     /// Finishes the drag gesture, animating to final position.
     private func finishDrag() {
-        // Toggle if no toggle occurred during drag
-        if !didToggleDuringDrag {
-            feedbackGenerator?.impactOccurred()
-            
-            isUpdatingStateProgrammatically = true
-            isOn.toggle()
-            isUpdatingStateProgrammatically = false
-            sendActions(for: .valueChanged)
+        isDragging = false
 
+        if didToggleDuringDrag {
+            // Edge was reached during drag — state is already correct, just notify.
+            sendActions(for: .valueChanged)
+        } else {
+            // No edge reached — silently restore original state without firing any action.
+            isUpdatingStateProgrammatically = true
+            isOn = wasOnWhenDragStarted
+            isUpdatingStateProgrammatically = false
             updateTrackColor(animated: true)
         }
 
-        // End drag state
-        isDragging = false
-        if isOn != wasOnWhenDragStarted {
-            sendActions(for: .valueChanged)
-        }
-
-        // Animate thumb back to its final position first (so it's visibly sliding), then contract.
-        self.contractThumb(animated: true)
+        contractThumb(animated: true)
         updateThumbPosition(animated: true)
     }
 
