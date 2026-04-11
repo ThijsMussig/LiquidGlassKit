@@ -102,14 +102,15 @@ struct LiquidGlass {
     }
 
     /// Like thumb but tuned for small pill elements (switches).
-    /// Zero dispersion and near-zero refraction prevent chromatic blur and magnification
-    /// artifacts that are visible on small 58×38pt views.
+    /// Magnification via refractiveIndex + wider capture area, but always at full
+    /// texture resolution (scaleCoefficient = 1.0) so the glass is sharp.
+    /// Zero dispersion eliminates the chromatic-aberration softness of the slider preset.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
             materialTint: .init(x: 0.9, y: 0.95, z: 1.0, w: 0.15),
             glassThickness: 10,
-            refractiveIndex: 1.02,  // Near-flat: no visible magnification
-            dispersionStrength: 0,  // No chromatic aberration = sharp
+            refractiveIndex: 1.11,  // Same lens magnification as the slider thumb
+            dispersionStrength: 0,  // No RGB split — keeps the magnified image sharp
             fresnelDistanceRange: 70,
             fresnelIntensity: 0,
             fresnelEdgeSharpness: 0,
@@ -120,8 +121,8 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.2,
             glareDirectionOffset: .pi * 0.9,
         ),
-        backgroundTextureSizeCoefficient: 1.0,
-        backgroundTextureScaleCoefficient: 1.0,
+        backgroundTextureSizeCoefficient: 1.35, // Captures 35% wider area for lens to sample from
+        backgroundTextureScaleCoefficient: 1.0, // Full resolution — no texture downscale blur
         backgroundTextureBlurRadius: 0,
         shadowOverlay: true,
         fullQuality: true,
