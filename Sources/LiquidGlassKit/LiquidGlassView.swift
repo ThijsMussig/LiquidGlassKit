@@ -106,9 +106,9 @@ struct LiquidGlass {
     /// no chromatic dispersion, near-flat refraction. No fresnel ring.
     static let switchThumb = Self.init(
         shaderUniforms: .init(
-            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.42), // Light frosted tint — glass, not paint
+            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.35), // Light frosted tint
             glassThickness: 10,
-            refractiveIndex: 1.07,   // More visible glass bend
+            refractiveIndex: 0.92,   // < 1.0 → diverging lens: refracts outward (zoom-out / inward cave effect)
             dispersionStrength: 0,   // No chromatic aberration
             fresnelDistanceRange: 0,
             fresnelIntensity: 0,     // No white ring
@@ -120,8 +120,8 @@ struct LiquidGlass {
             glareEdgeSharpness: -0.1,
             glareDirectionOffset: .pi * 0.9,
         ),
-        backgroundTextureSizeCoefficient: 1.35, // Capture wider area so zoom-out has content to show
-        backgroundTextureScaleCoefficient: 0.75, // Render at 75% = zooms OUT (content appears smaller behind glass)
+        backgroundTextureSizeCoefficient: 1.0,
+        backgroundTextureScaleCoefficient: 1.0,
         backgroundTextureBlurRadius: 0,
         shadowOverlay: true,
         fullQuality: true,

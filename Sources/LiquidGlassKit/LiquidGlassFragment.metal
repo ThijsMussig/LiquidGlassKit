@@ -48,6 +48,8 @@ struct ShaderUniforms {
     float glareDirectionOffset;      // Angular offset for glare direction
     int rectangleCount;              // Number of active rectangles
     float4 rectangles[maxRectangles]; // Array of rectangles (x, y, width, height) in points, upper-left origin
+    float2 captureOffset;            // Motion reprojection UV delta (zero when just captured)
+    float textureSizeCoefficient;    // backgroundTextureSizeCoefficient — scales input.uv into texture center region
 };
 
 // Constant linear sampler for texture lookups (bilinear filtering, no wrap)
@@ -442,6 +444,17 @@ fragment half4 liquidGlassEffect(VertexOutput input [[stage_in]],
     // Fragment coordinate in pixels (from UV, upper-left origin)
     float2 fragmentPixelCoord = float2(input.uv) * uniforms.resolution;
 
+    // Motion reprojection:
+    // Step 1 — remap input.uv into the CENTER fraction of the capture texture.
+    //   When textureSizeCoefficient > 1, the texture covers a wider area than the view (e.g.
+    //   1.5× = 25% extra on each side). Remapping the view's visible pixels to [0.167, 0.833]
+    //   reserves the outer 16.7% on each side as a buffer zone for captureOffset to shift into
+    //   without immediately hitting clamp_to_edge. For coefficient == 1, centeredUV == input.uv.
+    float2 centeredUV = (float2(input.uv) - 0.5f) / uniforms.textureSizeCoefficient + 0.5f;
+    // Step 2 — shift by accumulated view movement since last capture. Keeps glass aligned with
+    //   content moving behind it on the frames between captures, without an extra recapture.
+    float2 reprojUV = clamp(centeredUV + uniforms.captureOffset, 0.0f, 1.0f);
+
     // Primary merged SDF distance (normalized to resolution.y)
     float shapeDistance = primaryShapeSDF(fragmentPixelCoord, uniforms);
 
@@ -455,16 +468,19 @@ fragment half4 liquidGlassEffect(VertexOutput input [[stage_in]],
         float normalizedDepth = -shapeDistance * logicalResolution.y;
 
         // Refraction shift factor
+        // Clamp asin argument to [-1, 1] so refractiveIndex < 1 (diverging/zoom-out lens) never
+        // produces NaN. Negative edgeShiftFactor = outward UV shift = concave/zoom-out effect.
         float depthRatio = 1.0f - normalizedDepth / uniforms.glassThickness;
         float incidentAngle = asin(pow(depthRatio, 2.0f));
-        float transmittedAngle = asin(1.0f / uniforms.refractiveIndex * sin(incidentAngle));
+        float sinTransmitted = clamp(1.0f / uniforms.refractiveIndex * sin(incidentAngle), -1.0f, 1.0f);
+        float transmittedAngle = asin(sinTransmitted);
         float edgeShiftFactor = -tan(transmittedAngle - incidentAngle);
         if (normalizedDepth >= uniforms.glassThickness) {
             edgeShiftFactor = 0.0f;
         }
 
-        if (edgeShiftFactor <= 0.0f) {
-            outputColor = background.sample(textureSampler, float2(input.uv));
+        if (edgeShiftFactor == 0.0f) {
+            outputColor = background.sample(textureSampler, reprojUV);
             outputColor = mix(outputColor, half4(half3(uniforms.materialTint.rgb), 1.0h), half(uniforms.materialTint.a * 0.8f));
         } else {
             float2 surfaceNormal = computeSurfaceNormal(fragmentPixelCoord, uniforms);
@@ -473,7 +489,7 @@ fragment half4 liquidGlassEffect(VertexOutput input [[stage_in]],
                 uniforms.resolution.y / (logicalResolution.x * uniforms.contentsScale),
                 1.0f
             ));
-            half4 refractedWithDispersion = sampleWithDispersion(background, float2(input.uv), float2(offsetUv), uniforms.dispersionStrength);
+            half4 refractedWithDispersion = sampleWithDispersion(background, reprojUV, float2(offsetUv), uniforms.dispersionStrength);
 
             // Base material tint
             outputColor = mix(refractedWithDispersion, half4(half3(uniforms.materialTint.rgb), 1.0h), half(uniforms.materialTint.a * 0.8f));
