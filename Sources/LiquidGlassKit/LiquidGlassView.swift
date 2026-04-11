@@ -108,7 +108,7 @@ struct LiquidGlass {
         shaderUniforms: .init(
             materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.35), // Light frosted tint
             glassThickness: 10,
-            refractiveIndex: 0.92,   // < 1.0 → diverging lens: refracts outward (zoom-out / inward cave effect)
+            refractiveIndex: 0.75,   // < 1.0 → diverging lens: refracts outward (zoom-out / inward cave effect)
             dispersionStrength: 0,   // No chromatic aberration
             fresnelDistanceRange: 0,
             fresnelIntensity: 0,     // No white ring
