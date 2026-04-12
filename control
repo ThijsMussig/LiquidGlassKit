@@ -2,9 +2,13 @@ Package: com.yourhandle.liquidglass
 Name: LiquidGlass
 Version: 1.3.0
 Architecture: iphoneos-arm64 | iphoneos-arm64e
-Description: Gives iOS UI elements a Liquid Glass look.
- Applies real-time Metal-rendered glass to the SpringBoard dock,
- passcode buttons, switches, and sliders using LiquidGlassKit.
+Description: [EXPERIMENTAL] Gives iOS UI elements a real-time Metal-rendered Liquid Glass look.
+ - App Library icons and folders use a high-performance renderer based on winaviation's work (thanks to WinsAviation)
+ - Home Screen folder icons retain the original effect
+ - Quick action toggles and passcode buttons are glassed
+ - Notifications on the Home Screen are also glass
+ - Dock, switches, and sliders use LiquidGlassKit
+ - For iOS 14–18, rootful, rootless, and roothide supported
 Maintainer: Your Name <you@example.com>
 Author: Your Name <you@example.com>
 Section: Tweaks

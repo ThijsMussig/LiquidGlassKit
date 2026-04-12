@@ -1,47 +1,47 @@
 {
   "": {
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/master.swiftdeps"
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/master.swiftdeps"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/LiquidGlassEffectView.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/LiquidGlassEffectView.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassEffectView.dia"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/LiquidGlassSlider.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/LiquidGlassSlider.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSlider.dia"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/LiquidGlassSwitch.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/LiquidGlassSwitch.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassSwitch.dia"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/LiquidGlassView.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/LiquidGlassView.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidGlassView.dia"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/LiquidLensView.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/LiquidLensView.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/LiquidLensView.dia"
   },
-  "/Volumes/T7/liquid glass tweak/Sources/LiquidGlassKit/ZeroCopyBridge.swift": {
-    "dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.d",
-    "object": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.swift.o",
-    "swiftmodule": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge~partial.swiftmodule",
-    "swift-dependencies": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.swiftdeps",
-    "diagnostics": "/Volumes/T7/liquid glass tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.dia"
+  "/Volumes/T7/liquid:glass:tweak/Sources/LiquidGlassKit/ZeroCopyBridge.swift": {
+    "dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.d",
+    "object": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.swift.o",
+    "swiftmodule": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge~partial.swiftmodule",
+    "swift-dependencies": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.swiftdeps",
+    "diagnostics": "/Volumes/T7/liquid:glass:tweak/.build/index-build/arm64-apple-macosx/debug/LiquidGlassKit.build/ZeroCopyBridge.dia"
   }
 }
