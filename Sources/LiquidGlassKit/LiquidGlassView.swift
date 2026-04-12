@@ -114,9 +114,9 @@ struct LiquidGlass {
             glareDirectionOffset: -.pi / 4,
         ),
         backgroundTextureSizeCoefficient: 1,
-        backgroundTextureScaleCoefficient: 0.2,
+        backgroundTextureScaleCoefficient: 0.5,
         backgroundTextureBlurRadius: 0.3,
-        tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0, green: 0.04958364581, blue: 0.09951775161, alpha: 0.7981493615) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }//.systemBackground.withAlphaComponent(0.8),
+        tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0.28, green: 0.28, blue: 0.28, alpha: 0.80) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }
     )
 
     /// Same as regular but with no material tint — fully-transparent glass with only refraction.
@@ -342,6 +342,11 @@ final class LiquidGlassView: MTKView {
                                        width: captureSize.width,
                                        height: captureSize.height)
 
+        // Same NaN guard as captureBackdrop — presentation layer can have NaN position.
+        guard captureSize.width.isFinite, captureSize.height.isFinite,
+              captureSize.width > 0, captureSize.height > 0,
+              captureRectInRoot.origin.x.isFinite, captureRectInRoot.origin.y.isFinite else { return }
+
         backgroundTexture = zeroCopyBridge.render { context in
             // Hide self temporarily for clean background capture
             let wasHidden = isHidden
@@ -375,7 +380,14 @@ final class LiquidGlassView: MTKView {
                                  height: frameInSuperview.height * sizeCoefficient)
         let captureOrigin = CGPoint(x: frameInSuperview.midX - captureSize.width / 2,
                                     y: frameInSuperview.midY - captureSize.height / 2)
-        
+
+        // Guard against NaN — presentation layer can return NaN position during
+        // mid-animation transitions (e.g. iPhone X home-screen). Setting a NaN frame
+        // on CABackdropLayer throws CALayerInvalidGeometry and crashes SpringBoard.
+        guard captureSize.width.isFinite, captureSize.height.isFinite,
+              captureSize.width > 0, captureSize.height > 0,
+              captureOrigin.x.isFinite, captureOrigin.y.isFinite else { return }
+
         // Position backdrop view and layer
         backdropView.frame = CGRect(origin: captureOrigin, size: captureSize)
 

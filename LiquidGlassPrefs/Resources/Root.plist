@@ -72,6 +72,20 @@
             <key>defaults</key>
             <string>com.yourhandle.liquidglass</string>
             <key>key</key>
+            <string>quickActionEnabled</string>
+            <key>label</key>
+            <string>Lock Screen Quick Actions</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
             <string>folderEnabled</string>
             <key>label</key>
             <string>Folders</string>
@@ -116,7 +130,21 @@
             <key>key</key>
             <string>notificationEnabled</string>
             <key>label</key>
-            <string>Notifications</string>
+            <string>Lock Screen Notifications</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>bannerEnabled</string>
+            <key>label</key>
+            <string>Banner Notifications</string>
             <key>PostNotification</key>
             <string>com.yourhandle.liquidglass/settingsChanged</string>
         </dict>
@@ -131,6 +159,48 @@
             <string>mediaPlayerEnabled</string>
             <key>label</key>
             <string>Media Player</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>searchBarEnabled</string>
+            <key>label</key>
+            <string>App Library Search Bar</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>libraryPodEnabled</string>
+            <key>label</key>
+            <string>App Library Folders</string>
+            <key>PostNotification</key>
+            <string>com.yourhandle.liquidglass/settingsChanged</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.yourhandle.liquidglass</string>
+            <key>key</key>
+            <string>librarySuggestionsEnabled</string>
+            <key>label</key>
+            <string>App Library Suggestions Row</string>
             <key>PostNotification</key>
             <string>com.yourhandle.liquidglass/settingsChanged</string>
         </dict>

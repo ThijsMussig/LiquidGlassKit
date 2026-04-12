@@ -25,6 +25,7 @@ TWEAK_NAME = LiquidGlass
 # All Swift source files compiled into the dylib
 LiquidGlass_FILES = \
 	Tweak.x \
+	LiquidGlassAL.x \
 	Sources/LiquidGlassBridge.swift \
 	liquidglasskit/Sources/LiquidGlassKit/LiquidGlassView.swift \
 	liquidglasskit/Sources/LiquidGlassKit/LiquidGlassEffectView.swift \
