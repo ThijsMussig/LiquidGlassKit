@@ -102,31 +102,9 @@ struct LiquidGlass {
     }
 
     /// Like thumb but tuned for small pill elements (switches).
-    /// Translucent frosted glass — shows background through, slight cool-white tint,
-    /// no chromatic dispersion, near-flat refraction. No fresnel ring.
-    static let switchThumb = Self.init(
-        shaderUniforms: .init(
-            materialTint: .init(x: 1.0, y: 1.0, z: 1.0, w: 0.22), // Soft translucent white pill
-            glassThickness: 14,          // Thicker = wider refraction band around the edge
-            refractiveIndex: 1.25,       // More bending = wider visible refraction area
-            dispersionStrength: 0,
-            fresnelDistanceRange: 0,
-            fresnelIntensity: 0,         // No white ring
-            fresnelEdgeSharpness: 0,
-            glareDistanceRange: 0,
-            glareAngleConvergence: 0,
-            glareOppositeSideBias: 0,
-            glareIntensity: 0,           // No starburst
-            glareEdgeSharpness: 0,
-            glareDirectionOffset: 0,
-        ),
-        backgroundTextureSizeCoefficient: 1.2,
-        backgroundTextureScaleCoefficient: 1.0,
-        backgroundTextureBlurRadius: 0,
-        shadowOverlay: true,
-        fullQuality: true,
-        forceRootCapture: true
-    )
+    /// Transparent glass pill — wide background buffer to prevent UV overflow,
+    /// moderate refraction, bright fresnel rim + glare streak like iOS 26 UISwitch.
+    
 
     static let lens = Self.init(
         shaderUniforms: .init(
@@ -165,9 +143,9 @@ struct LiquidGlass {
             glareDirectionOffset: -.pi / 4,
         ),
         backgroundTextureSizeCoefficient: 1.5,
-        backgroundTextureScaleCoefficient: 0.2,
+        backgroundTextureScaleCoefficient: 0.5,
         backgroundTextureBlurRadius: 0.3,
-        tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0, green: 0.04958364581, blue: 0.09951775161, alpha: 0.7981493615) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }//.systemBackground.withAlphaComponent(0.8),
+        tintColor: UIColor { $0.userInterfaceStyle == .dark ? #colorLiteral(red: 0.28, green: 0.28, blue: 0.28, alpha: 0.80) : #colorLiteral(red: 0.9023525731, green: 0.9509486998, blue: 1, alpha: 0.8002892298) }
     )
 
     /// Same as regular but with no material tint — fully-transparent glass with only refraction.
@@ -612,6 +590,11 @@ final class LiquidGlassView: MTKView {
                                        width: captureSize.width,
                                        height: captureSize.height)
 
+        // Same NaN guard as captureBackdrop — presentation layer can have NaN position.
+        guard captureSize.width.isFinite, captureSize.height.isFinite,
+              captureSize.width > 0, captureSize.height > 0,
+              captureRectInRoot.origin.x.isFinite, captureRectInRoot.origin.y.isFinite else { return }
+
         backgroundTexture = zeroCopyBridge.render { context in
             // No need to hide this view — MTKView uses CAMetalLayer whose Metal content
             // is compositor-only and does NOT appear in layer.render(in:). Any attempt
@@ -642,7 +625,14 @@ final class LiquidGlassView: MTKView {
                                  height: frameInSuperview.height * sizeCoefficient)
         let captureOrigin = CGPoint(x: frameInSuperview.midX - captureSize.width / 2,
                                     y: frameInSuperview.midY - captureSize.height / 2)
-        
+
+        // Guard against NaN — presentation layer can return NaN position during
+        // mid-animation transitions (e.g. iPhone X home-screen). Setting a NaN frame
+        // on CABackdropLayer throws CALayerInvalidGeometry and crashes SpringBoard.
+        guard captureSize.width.isFinite, captureSize.height.isFinite,
+              captureSize.width > 0, captureSize.height > 0,
+              captureOrigin.x.isFinite, captureOrigin.y.isFinite else { return }
+
         // Position backdrop view and layer
         backdropView.frame = CGRect(origin: captureOrigin, size: captureSize)
 

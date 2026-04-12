@@ -468,15 +468,20 @@ fragment half4 liquidGlassEffect(VertexOutput input [[stage_in]],
         float normalizedDepth = -shapeDistance * logicalResolution.y;
 
         // Refraction shift factor
-        // Clamp asin argument to [-1, 1] so refractiveIndex < 1 (diverging/zoom-out lens) never
-        // produces NaN. Negative edgeShiftFactor = outward UV shift = concave/zoom-out effect.
+        // For refractiveIndex < 1 (diverging lens), total internal reflection (TIR) occurs when
+        // sin(incidentAngle) >= refractiveIndex. Clamping and asin-ing those values produces huge
+        // UV offsets → black/white artifacts at the edge band. Instead: detect TIR and treat those
+        // pixels as no-refraction so the edge stays clean and transparent.
         float depthRatio = 1.0f - normalizedDepth / uniforms.glassThickness;
         float incidentAngle = asin(pow(depthRatio, 2.0f));
-        float sinTransmitted = clamp(1.0f / uniforms.refractiveIndex * sin(incidentAngle), -1.0f, 1.0f);
-        float transmittedAngle = asin(sinTransmitted);
-        float edgeShiftFactor = -tan(transmittedAngle - incidentAngle);
-        if (normalizedDepth >= uniforms.glassThickness) {
+        float sinTransmittedRaw = (1.0f / uniforms.refractiveIndex) * sin(incidentAngle);
+        float edgeShiftFactor;
+        if (abs(sinTransmittedRaw) >= 1.0f || normalizedDepth >= uniforms.glassThickness) {
+            // TIR zone (steep edge angles) or beyond glass: no refraction — clean transparent edge
             edgeShiftFactor = 0.0f;
+        } else {
+            float transmittedAngle = asin(sinTransmittedRaw);
+            edgeShiftFactor = -tan(transmittedAngle - incidentAngle);
         }
 
         if (edgeShiftFactor == 0.0f) {

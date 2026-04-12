@@ -67,7 +67,7 @@ open class LiquidGlassSwitch: UIControl {
     private let contractedThumbView = UIView()
     
     /// The expanded thumb - transparent pill with border shown during interaction.
-    private let expandedThumbView = LiquidGlassView(.switchThumb)
+    private let expandedThumbView = LiquidGlassView(.thumb(magnification: 0.75))
 
     // MARK: - Haptic Feedback
     
@@ -205,9 +205,6 @@ open class LiquidGlassSwitch: UIControl {
         setupAccessibility()
         updateTrackColor(animated: false)
         updateThumbPosition(animated: false)
-        // Give expandedThumbView a valid initial center matching the contracted thumb
-        // so the first capture renders the correct background region.
-        expandedThumbView.center = CGPoint(x: targetThumbCenterX, y: switchHeight / 2)
     }
     
     // MARK: - Setup
@@ -226,15 +223,14 @@ open class LiquidGlassSwitch: UIControl {
         contractedThumbView.isUserInteractionEnabled = false
         addSubview(contractedThumbView)
         
-        // Expanded thumb — kept permanently in hierarchy so the Metal capture scheduler
-        // runs continuously. We pause rendering when hidden and unpause on expand, ensuring
-        // a valid backgroundTexture is always available when the thumb becomes visible.
+        // Expanded thumb - transparent with border, not in hierarchy initially
         expandedThumbView.frame = CGRect(x: 0, y: 0, width: expandedThumbWidth, height: expandedThumbHeight)
         expandedThumbView.layer.cornerRadius = expandedThumbHeight / 2
+//        expandedThumbView.backgroundColor = .clear
+//        expandedThumbView.layer.borderWidth = expandedThumbBorderWidth
+//        expandedThumbView.layer.borderColor = resolvedExpandedThumbBorderColor.cgColor
         expandedThumbView.isUserInteractionEnabled = false
-        expandedThumbView.alpha = 0
-        expandedThumbView.isPaused = true  // Start paused; unpaused on first expand
-        addSubview(expandedThumbView)
+        // Not added to view hierarchy - only shown during expansion
     }
     
     private func setupHaptics() {
@@ -327,14 +323,11 @@ open class LiquidGlassSwitch: UIControl {
         expandedThumbView.center = contractedThumbView.center
         expandedThumbView.transform = expandedToContractedTransform
         expandedThumbView.alpha = 0
-        // Unpause rendering and force an immediate capture so the first visible frame
-        // already has valid texture — no blank/glitched first frame.
-        expandedThumbView.isPaused = false
-        expandedThumbView.captureBackground()
+        addSubview(expandedThumbView)
 
         // Prepare contracted thumb for scale-up animation
         let targetContractedTransform = contractedToExpandedTransform
-        
+
         if animated {
             UIView.animate(
                 withDuration: 0.4,
@@ -350,14 +343,16 @@ open class LiquidGlassSwitch: UIControl {
                 self.expandedThumbView.transform = .identity
                 self.expandedThumbView.alpha = 1
             } completion: { finished in
-                // Only hide contractedThumbView — keep it in hierarchy for reuse
+                // Only clean up if animation completed and state is still expanded
                 guard finished, self.isThumbExpanded else { return }
+                self.contractedThumbView.removeFromSuperview()
                 self.contractedThumbView.transform = .identity
-                self.contractedThumbView.alpha = 0
+                self.contractedThumbView.alpha = 1
             }
         } else {
+            contractedThumbView.removeFromSuperview()
             contractedThumbView.transform = .identity
-            contractedThumbView.alpha = 0
+            contractedThumbView.alpha = 1
             expandedThumbView.transform = .identity
             expandedThumbView.alpha = 1
         }
@@ -372,13 +367,11 @@ open class LiquidGlassSwitch: UIControl {
         contractedThumbView.center = expandedThumbView.center
         contractedThumbView.transform = contractedToExpandedTransform
         contractedThumbView.alpha = 0
-        // Ensure contractedThumbView is visible in hierarchy
-        if contractedThumbView.superview == nil { addSubview(contractedThumbView) }
-        bringSubviewToFront(contractedThumbView)
-        
+        addSubview(contractedThumbView)
+
         // Prepare expanded thumb for scale-down animation
         let targetExpandedTransform = expandedToContractedTransform
-        
+
         if animated {
             UIView.animate(
                 withDuration: 0.6,
@@ -394,15 +387,16 @@ open class LiquidGlassSwitch: UIControl {
                 self.contractedThumbView.transform = .identity
                 self.contractedThumbView.alpha = 1
             } completion: { finished in
-                // Keep expandedThumbView in hierarchy but pause GPU work when invisible
+                // Only clean up if animation completed and state is still contracted
                 guard finished, !self.isThumbExpanded else { return }
+                self.expandedThumbView.removeFromSuperview()
                 self.expandedThumbView.transform = .identity
-                self.expandedThumbView.isPaused = true
+                self.expandedThumbView.alpha = 1
             }
         } else {
+            expandedThumbView.removeFromSuperview()
             expandedThumbView.transform = .identity
-            expandedThumbView.alpha = 0
-            expandedThumbView.isPaused = true
+            expandedThumbView.alpha = 1
             contractedThumbView.transform = .identity
             contractedThumbView.alpha = 1
         }
@@ -503,14 +497,12 @@ open class LiquidGlassSwitch: UIControl {
     
     open override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesCancelled(touches, with: event)
-        // Always restore original state silently on cancel — no action fired.
-        isDragging = false
-        isUpdatingStateProgrammatically = true
-        isOn = wasOnWhenDragStarted
-        isUpdatingStateProgrammatically = false
-        updateTrackColor(animated: true)
-        contractThumb(animated: true)
-        updateThumbPosition(animated: true)
+        if isDragging {
+            finishDrag()
+        } else if isThumbExpanded {
+            // If the interaction is cancelled before a drag is recognized, return to resting state.
+            contractThumb(animated: true)
+        }
     }
     
     // MARK: - Drag Helpers
@@ -550,20 +542,26 @@ open class LiquidGlassSwitch: UIControl {
     
     /// Finishes the drag gesture, animating to final position.
     private func finishDrag() {
-        isDragging = false
+        // Toggle if no toggle occurred during drag
+        if !didToggleDuringDrag {
+            feedbackGenerator?.impactOccurred()
 
-        if didToggleDuringDrag {
-            // Edge was reached during drag — state is already correct, just notify.
-            sendActions(for: .valueChanged)
-        } else {
-            // No edge reached — silently restore original state without firing any action.
             isUpdatingStateProgrammatically = true
-            isOn = wasOnWhenDragStarted
+            isOn.toggle()
             isUpdatingStateProgrammatically = false
+            sendActions(for: .valueChanged)
+
             updateTrackColor(animated: true)
         }
 
-        contractThumb(animated: true)
+        // End drag state
+        isDragging = false
+        if isOn != wasOnWhenDragStarted {
+            sendActions(for: .valueChanged)
+        }
+
+        // Animate thumb back to its final position first (so it's visibly sliding), then contract.
+        self.contractThumb(animated: true)
         updateThumbPosition(animated: true)
     }
 
