@@ -9,14 +9,35 @@ if [ $# -gt 0 ]; then
     exec $MAKE "$@"
 fi
 
-echo "[LiquidGlass] Building rootful package (arm64 + arm64e)…"
-$MAKE package || exit 1
+# Delete old packages to prevent confusion
+rm -f packages/*.deb
 
-echo "[LiquidGlass] Building rootless package (arm64 + arm64e)…"
-$MAKE THEOS_PACKAGE_SCHEME=rootless package || exit 1
+build_target() {
+    local SCHEME=$1
+    local ARCH=$2
+    local OUT_NAME=$3
+    
+    echo "[LiquidGlass] Building $OUT_NAME package ($ARCH)…"
+    $MAKE clean
+    
+    if [ -z "$SCHEME" ]; then
+        $MAKE package ARCHS=$ARCH THEOS_PACKAGE_ARCH=iphoneos-$ARCH > /dev/null || exit 1
+    else
+        $MAKE THEOS_PACKAGE_SCHEME=$SCHEME package ARCHS=$ARCH THEOS_PACKAGE_ARCH=iphoneos-$ARCH > /dev/null || exit 1
+    fi
+    
+    LATEST_DEB=$(ls -t packages/*.deb 2>/dev/null | head -n 1)
+    if [ -n "$LATEST_DEB" ]; then
+        mv "$LATEST_DEB" "packages/LiquidGlass-${OUT_NAME}_${ARCH}.deb"
+    fi
+}
 
-echo "[LiquidGlass] Building roothide package (arm64e)…"
-$MAKE THEOS_PACKAGE_SCHEME=roothide package THEOS_PACKAGE_ARCH=iphoneos-arm64e || exit 1
+build_target "" "arm64" "Rootful"
+build_target "" "arm64e" "Rootful"
+build_target "rootless" "arm64" "Rootless"
+build_target "rootless" "arm64e" "Rootless"
+build_target "roothide" "arm64" "Roothide"
+build_target "roothide" "arm64e" "Roothide"
 
-echo "[LiquidGlass] Done. Packages:"
-ls -1 packages/*.deb 2>/dev/null | grep -v "^$"
+echo "[LiquidGlass] Done"
+ls -1 packages/*.deb
