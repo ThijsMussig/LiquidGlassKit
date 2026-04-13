@@ -890,6 +890,13 @@ public func applyToFolderIcon(_ view: UIView) {
     }
 }
 
+@_silgen_name("LGRemoveFolderIconGlass")
+public func removeFolderIconGlass(_ view: UIView) {
+    if let gv = storedFolderIconGlass(for: view) {
+        gv.removeFromSuperview()
+    }
+}
+
 // MARK: - Lock screen media player (CSAdjunctItemView / MPUSystemMediaControlsView)
 
 private func storedMediaPlayerGlass(for v: UIView) -> LiquidGlassEffectView? {

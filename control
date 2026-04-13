@@ -1,7 +1,7 @@
 Package: com.yourhandle.liquidglass
 Name: LiquidGlass
 Version: 1.3.0
-Architecture: iphoneos-arm64 | iphoneos-arm64e
+Architecture: iphoneos-arm
 Description: [EXPERIMENTAL] Gives iOS UI elements a real-time Metal-rendered Liquid Glass look.
  - App Library icons and folders use a high-performance renderer based on winaviation's work (thanks to WinsAviation)
  - Home Screen folder icons retain the original effect

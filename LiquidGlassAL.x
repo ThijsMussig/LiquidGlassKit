@@ -1116,17 +1116,7 @@ static void LGAL_ensureTintOverlay(UIView *host, CGFloat radius, UIColor *tintCo
     [host bringSubviewToFront:tint];
 }
 
-static BOOL LGAL_isInsideLibraryPod(UIView *view) {
-    static Class podCls;
-    if (!podCls) podCls = NSClassFromString(@"SBHLibraryCategoryPodView");
-    if (!podCls) return NO;
-    UIView *p = view.superview;
-    while (p) {
-        if ([p isKindOfClass:podCls]) return YES;
-        p = p.superview;
-    }
-    return NO;
-}
+
 
 static void LGAL_injectIntoPod(UIView *self_) {
     UIView *host = LGAL_podHostView(self_);
@@ -1362,29 +1352,7 @@ static void LGAL_injectIntoFolderIcon(UIView *self_) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – App Library folder icon hooks (inside pods only)
 // ─────────────────────────────────────────────────────────────────────────────
-%group ALFolderIcon
 
-%hook SBFolderIconImageView
-- (void)didMoveToWindow {
-    %orig;
-    UIView *v = (UIView *)self;
-    if (!v.window) {
-        LGAL_removeGlass(v);
-        LGAL_restoreState(v);
-        return;
-    }
-    if (!LGAL_isInsideLibraryPod(v)) return;
-    LGAL_injectIntoFolderIcon(v);
-}
-- (void)layoutSubviews {
-    %orig;
-    UIView *v = (UIView *)self;
-    if (!v.window || !LGAL_isInsideLibraryPod(v)) return;
-    LGAL_injectIntoFolderIcon(v);
-}
-%end
-
-%end  // ALFolderIcon
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Constructor
@@ -1397,11 +1365,11 @@ static void LGAL_injectIntoFolderIcon(UIView *self_) {
 
     Class bgCls        = NSClassFromString(@"SBHLibraryCategoryPodBackgroundView");
     Class scrollCls    = NSClassFromString(@"BSUIScrollView");
-    Class folderIconCls = NSClassFromString(@"SBFolderIconImageView");
+
 
     if (bgCls)         %init(AppLibraryAL,    SBHLibraryCategoryPodBackgroundView = bgCls);
     if (scrollCls)     %init(AppLibraryALScroll, BSUIScrollView = scrollCls);
-    if (folderIconCls) %init(ALFolderIcon,    SBFolderIconImageView = folderIconCls);
+
 
     %init(ALWallpaperInterception);
 }

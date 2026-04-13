@@ -10,6 +10,7 @@
 extern void LGApplyToDockView(UIView *view);
 extern void LGApplyToPasscodeButton(UIView *view);
 extern void LGApplyToFolderIcon(UIView *view);
+extern void LGRemoveFolderIconGlass(UIView *view);
 extern void LGApplyToFolderBackground(UIView *view);
 extern void LGHideFolderGlass(UIView *view);
 extern void LGApplyToNotificationCell(UIView *view);
@@ -300,21 +301,31 @@ static BOOL LG_hasMPUControls(UIView *root, int depth) {
     %orig;
     UIView *v = (UIView *)self;
     if (!v.window) return;
-    // Skip folder icons inside App Library pods — handled by ALFolderIcon in LiquidGlassAL.x
-    static Class podCls;
-    if (!podCls) podCls = NSClassFromString(@"SBHLibraryCategoryPodView");
-    if (podCls) { UIView *p = v.superview; while (p) { if ([p isKindOfClass:podCls]) return; p = p.superview; } }
     LGApplyToFolderIcon(v);
+    UIView *p = v.superview;
+    BOOL inLibrary = NO;
+    while (p) {
+        if ([NSStringFromClass([p class]) containsString:@"Library"]) { inLibrary = YES; break; }
+        p = p.superview;
+    }
+    if (inLibrary) {
+        LGRemoveFolderIconGlass(v);
+    }
 }
 - (void)layoutSubviews {
     %orig;
     UIView *v = (UIView *)self;
     if (!v.window) return;
-    // Skip folder icons inside App Library pods — handled by ALFolderIcon in LiquidGlassAL.x
-    static Class podCls2;
-    if (!podCls2) podCls2 = NSClassFromString(@"SBHLibraryCategoryPodView");
-    if (podCls2) { UIView *p = v.superview; while (p) { if ([p isKindOfClass:podCls2]) return; p = p.superview; } }
     LGApplyToFolderIcon(v);
+    UIView *p = v.superview;
+    BOOL inLibrary = NO;
+    while (p) {
+        if ([NSStringFromClass([p class]) containsString:@"Library"]) { inLibrary = YES; break; }
+        p = p.superview;
+    }
+    if (inLibrary) {
+        LGRemoveFolderIconGlass(v);
+    }
 }
 %end
 %end

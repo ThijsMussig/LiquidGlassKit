@@ -9,7 +9,9 @@ if [ $# -gt 0 ]; then
     exec $MAKE "$@"
 fi
 
-# No arguments: build BOTH rootless and roothide packages.
+echo "[LiquidGlass] Building rootful package (arm64 + arm64e)…"
+$MAKE package || exit 1
+
 echo "[LiquidGlass] Building rootless package (arm64 + arm64e)…"
 $MAKE THEOS_PACKAGE_SCHEME=rootless package || exit 1
 
