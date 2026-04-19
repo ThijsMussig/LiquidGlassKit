@@ -25,7 +25,8 @@ private enum DeviceCapability {
     }()
 
     /// Tint alpha — reduces compositing pressure on older GPUs.
-    static let tintAlpha: CGFloat = isLowEnd ? 0.15 : 0.28
+    /// Tint alpha — reduces compositing pressure on older GPUs.
+    static let tintAlpha: CGFloat = isLowEnd ? 0.12 : 0.28
 
     /// Whether the device runs at 120 Hz (ProMotion).
     static let is120Hz: Bool = UIScreen.main.maximumFramesPerSecond >= 120
@@ -184,9 +185,11 @@ private func isNotificationEnabled()  -> Bool { isEnabled() && pref("notificatio
 private func isMediaPlayerEnabled()   -> Bool { isEnabled() && pref("mediaPlayerEnabled") }
 private func isSearchBarEnabled()          -> Bool { isEnabled() && pref("searchBarEnabled") }
 private func isLibrarySuggestionsEnabled() -> Bool { isEnabled() && pref("librarySuggestionsEnabled") }
+private func isLibraryPodEnabled()         -> Bool { isEnabled() && pref("libraryPodEnabled") }
 private func isSpotlightSearchEnabled()    -> Bool { isEnabled() && pref("spotlightSearchEnabled") }
 private func isQuickActionEnabled()        -> Bool { isEnabled() && pref("quickActionEnabled") }
 private func isBannerEnabled()             -> Bool { isEnabled() && pref("bannerEnabled") }
+private func isClockEnabled()              -> Bool { isEnabled() && pref("clockEnabled") }
 
 // MARK: - Associated object keys
 private enum K {
@@ -201,6 +204,10 @@ private enum K {
     static var ss: UInt8 = 0   // Spotlight search pill glass view
     static var qa: UInt8 = 0   // Lock screen quick action glass view
     static var bn: UInt8 = 0   // Banner notification glass view
+    static var al: UInt8 = 0   // App Library pod glass view
+    static var cm: UInt8 = 0   // Context menu (long-press) glass view
+    static var sp: UInt8 = 0   // Search/page-dots pill glass view
+    static var cl: UInt8 = 0   // Lock screen clock glass container
 }
 
 private func storedGlassView(for v: UIView) -> LiquidGlassEffectView? {
@@ -273,6 +280,186 @@ private func backgroundPillFrame(in view: UIView) -> CGRect? {
         }
     }
     return nil
+}
+
+// MARK: - App Library category pod (SBHLibraryCategoryPodBackgroundView host)
+// Replaces the custom Metal LGAL renderer with the same LiquidGlassEffectView(.clear)
+// used by home screen folder icons and the App Library search bar — identical glass.
+
+private func storedLibraryPodGlass(for v: UIView) -> LiquidGlassEffectView? {
+    objc_getAssociatedObject(v, &K.al) as? LiquidGlassEffectView
+}
+private func storeLibraryPodGlass(_ gv: LiquidGlassEffectView, for v: UIView) {
+    objc_setAssociatedObject(v, &K.al, gv, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
+@_silgen_name("LGApplyToLibraryPod")
+public func applyToLibraryPod(_ host: UIView) {
+    guard isLibraryPodEnabled(), host.bounds.width > 0 else { return }
+
+    let r = host.layer.cornerRadius > 1 ? host.layer.cornerRadius : 20
+
+    // Fast path — glass already installed; sync frame, keep clear.
+    if let gv = storedLibraryPodGlass(for: host) {
+        gv.frame = host.bounds
+        gv.layer.cornerRadius = r
+        if host.subviews.first !== gv { host.sendSubviewToBack(gv) }
+        host.backgroundColor = .clear
+        host.layer.backgroundColor = UIColor.clear.cgColor
+        return
+    }
+
+    host.backgroundColor = .clear
+    host.layer.backgroundColor = UIColor.clear.cgColor
+
+    // Hide the stock background view (SBHLibraryCategoryPodBackgroundView) that draws
+    // the grey rounded-rect. It's a direct subview of `host`.
+    for sub in host.subviews {
+        let n = String(describing: type(of: sub))
+        if n.contains("Background") || n.contains("Backdrop") || n.contains("Material") {
+            sub.isHidden = true
+            sub.layer.opacity = 0
+        }
+        if let vev = sub as? UIVisualEffectView {
+            vev.effect = nil
+            vev.isHidden = true
+        }
+    }
+    killBackdropLayers(in: host.layer)
+
+    let effect = LiquidGlassEffect(style: .clear, isNative: false)
+    let gv = LiquidGlassEffectView(effect: effect)
+    gv.frame = host.bounds
+    gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    gv.isUserInteractionEnabled = false
+    gv.layer.cornerRadius = r
+    gv.layer.cornerCurve  = .continuous
+    gv.clipsToBounds = false
+    host.insertSubview(gv, at: 0)
+    storeLibraryPodGlass(gv, for: host)
+
+    GlassDisplayLink.shared.register(host: host, glass: gv, fallbackR: r)
+}
+
+@_silgen_name("LGRemoveLibraryPodGlass")
+public func removeLibraryPodGlass(_ host: UIView) {
+    if let gv = storedLibraryPodGlass(for: host) {
+        GlassDisplayLink.shared.unregister(host: host)
+        gv.removeFromSuperview()
+        objc_setAssociatedObject(host, &K.al, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+}
+
+// MARK: - Search + page-dots pill (SBFolderScrollAccessoryView / MTMaterialView)
+// The rounded pill at the bottom of the home screen containing the search bar and page dots.
+
+private func storedSearchPillGlass(for v: UIView) -> LiquidGlassEffectView? {
+    objc_getAssociatedObject(v, &K.sp) as? LiquidGlassEffectView
+}
+private func storeSearchPillGlass(_ gv: LiquidGlassEffectView, for v: UIView) {
+    objc_setAssociatedObject(v, &K.sp, gv, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
+@_silgen_name("LGApplyToSearchPill")
+public func applyToSearchPill(_ materialView: UIView) {
+    guard isEnabled() else { return }
+    guard let parent = materialView.superview else { return }
+    guard materialView.bounds.width > 0, materialView.bounds.height > 0 else { return }
+
+    // Use the MTMaterialView's own frame and cornerRadius — it is exactly the pill shape.
+    let pillFrame = materialView.frame
+    let r = materialView.layer.cornerRadius > 1
+        ? materialView.layer.cornerRadius
+        : pillFrame.height / 2
+
+    // Fast path — glass already installed; sync to latest frame in case pill moved.
+    if let gv = storedSearchPillGlass(for: materialView) {
+        gv.frame = pillFrame
+        gv.layer.cornerRadius = r
+        return
+    }
+
+    // Inject glass as a SIBLING of MTMaterialView at the same z-index.
+    // This completely avoids fighting MTMaterialView's CABackdropLayer
+    // (disabled backdrop renders black, not transparent).
+    let effect = LiquidGlassEffect(style: .clear, isNative: false)
+    let gv = LiquidGlassEffectView(effect: effect)
+    gv.frame = pillFrame
+    gv.isUserInteractionEnabled = false
+    gv.layer.cornerRadius = r
+    gv.layer.cornerCurve = .continuous
+    gv.clipsToBounds = false
+    gv.alpha = 0  // hidden until snapshot is ready — prevents black flash
+    if let idx = parent.subviews.firstIndex(of: materialView) {
+        parent.insertSubview(gv, at: idx)
+    } else {
+        parent.addSubview(gv)
+    }
+    storeSearchPillGlass(gv, for: materialView)
+
+    DispatchQueue.main.async {
+        UIView.animate(withDuration: 0.2) { gv.alpha = 1.0 }
+    }
+}
+
+// MARK: - Context menu glass (long-press on any app icon)
+// Hooks into the UIVisualEffectView that iOS renders inside _UIContextMenuListView.
+// We nil the system blur and inject LiquidGlassEffectView(.clear) instead — same
+// glass style as folder icons and the search bar.
+
+private func storedContextMenuGlass(for v: UIView) -> LiquidGlassEffectView? {
+    objc_getAssociatedObject(v, &K.cm) as? LiquidGlassEffectView
+}
+private func storeContextMenuGlass(_ gv: LiquidGlassEffectView, for v: UIView) {
+    objc_setAssociatedObject(v, &K.cm, gv, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
+@_silgen_name("LGApplyToContextMenu")
+public func applyToContextMenu(_ effectView: UIView) {
+    guard isEnabled() else { return }
+    guard let vev = effectView as? UIVisualEffectView else { return }
+    let contentView = vev.contentView
+    guard contentView.bounds.width > 10, contentView.bounds.height > 10 else { return }
+
+    let r = effectView.layer.cornerRadius > 1 ? effectView.layer.cornerRadius : 22
+
+    // Fast path — glass already installed; just sync frame/radius.
+    if let gv = storedContextMenuGlass(for: effectView) {
+        gv.frame = contentView.bounds
+        gv.layer.cornerRadius = r
+        return
+    }
+
+    // Strip the system blur so we can render our own glass underneath the content.
+    vev.effect = nil
+    vev.backgroundColor = .clear
+    effectView.layer.backgroundColor = UIColor.clear.cgColor
+
+    // Dark mode → dark grey glass. Light mode → white glass. Both heavier than notification.
+    let isDark = effectView.traitCollection.userInterfaceStyle == .dark
+                 || UIScreen.main.traitCollection.userInterfaceStyle == .dark
+    let effect = LiquidGlassEffect(style: .regular, isNative: false)
+    effect.tintColor = isDark
+        ? UIColor(white: 0.08, alpha: 0.85)   // deep dark glass in dark mode
+        : UIColor(white: 1.00, alpha: 0.82)   // bright white glass in light mode
+
+    let gv = LiquidGlassEffectView(effect: effect)
+    gv.frame = contentView.bounds
+    gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    gv.isUserInteractionEnabled = false
+    gv.layer.cornerRadius = r
+    gv.layer.cornerCurve  = .continuous
+    gv.clipsToBounds = true
+    contentView.insertSubview(gv, at: 0)
+    storeContextMenuGlass(gv, for: effectView)
+}
+
+@_silgen_name("LGRemoveContextMenuGlass")
+public func removeContextMenuGlass(_ effectView: UIView) {
+    if let gv = storedContextMenuGlass(for: effectView) {
+        gv.removeFromSuperview()
+        objc_setAssociatedObject(effectView, &K.cm, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
 }
 
 // MARK: - App Library Suggestions row (_SBHLibrarySuggestionsView)
@@ -378,10 +565,16 @@ public func applyToSpotlightSearch(_ textField: UIView) {
         guard !(sub is LiquidGlassEffectView) else { continue }
         let n = String(describing: type(of: sub))
         if n.contains("Background") || n.contains("Backdrop") || n.contains("Material") ||
-           n.contains("RoundedRect") || n.contains("Border") {
+           n.contains("RoundedRect") || n.contains("Border") || n.contains("SearchField") {
             sub.isHidden = true
+            sub.alpha = 0
+            killBackdropLayers(in: sub.layer)
         }
-        if let vev = sub as? UIVisualEffectView { vev.effect = nil; vev.backgroundColor = .clear }
+        if let vev = sub as? UIVisualEffectView { 
+            vev.effect = nil
+            vev.backgroundColor = .clear 
+            vev.isHidden = true
+        }
     }
 
     // Defer creation so the view hierarchy is fully laid out before we snapshot the frame.
@@ -392,8 +585,14 @@ public func applyToSpotlightSearch(_ textField: UIView) {
         let frame = textField.convert(textField.bounds, to: parent)
         guard frame.width > 0 else { return }
         let cornerR: CGFloat = frame.height / 2
+        let isDark = textField.traitCollection.userInterfaceStyle == .dark || UIScreen.main.traitCollection.userInterfaceStyle == .dark
         let effect = LiquidGlassEffect(style: .clear, isNative: false)
-        effect.tintColor = UIColor.white.withAlphaComponent(DeviceCapability.tintAlpha)
+        if DeviceCapability.isLowEnd {
+            // "Crystal Clear" transparency: no blur, 3% tint.
+            let alpha: CGFloat = 0.03
+            let tint = isDark ? UIColor(white: 0.28, alpha: 1.0) : (effect.tintColor ?? .white)
+            effect.tintColor = tint.withAlphaComponent(alpha)
+        }
         let gv = LiquidGlassEffectView(effect: effect)
         gv.frame = frame
         gv.isUserInteractionEnabled = false
@@ -447,10 +646,17 @@ public func applyToSearchBar(_ textField: UIView) {
     for sub in textField.subviews {
         guard !(sub is LiquidGlassEffectView) else { continue }
         let n = String(describing: type(of: sub))
-        if n.contains("Background") || n.contains("Backdrop") || n.contains("RoundedRect") || n.contains("Border") {
+        if n.contains("Background") || n.contains("Backdrop") || n.contains("RoundedRect") || 
+           n.contains("Border") || n.contains("SearchField") {
             sub.isHidden = true
+            sub.alpha = 0
+            killBackdropLayers(in: sub.layer)
         }
-        if let vev = sub as? UIVisualEffectView { vev.effect = nil; vev.backgroundColor = .clear }
+        if let vev = sub as? UIVisualEffectView { 
+            vev.effect = nil
+            vev.backgroundColor = .clear 
+            vev.isHidden = true
+        }
     }
 
     // Defer initial glass creation to the next run loop so the view hierarchy
@@ -463,8 +669,14 @@ public func applyToSearchBar(_ textField: UIView) {
         let frame = textField.convert(textField.bounds, to: parent)
         guard frame.width > 0 else { return }
         let cornerR: CGFloat = frame.height / 2
+        let isDark = textField.traitCollection.userInterfaceStyle == .dark || UIScreen.main.traitCollection.userInterfaceStyle == .dark
         let effect = LiquidGlassEffect(style: .clear, isNative: false)
-        effect.tintColor = UIColor.white.withAlphaComponent(0.28)
+        if DeviceCapability.isLowEnd {
+            // "Crystal Clear" transparency: no blur, 3% tint.
+            let alpha: CGFloat = 0.03
+            let tint = isDark ? UIColor(white: 0.28, alpha: 1.0) : (effect.tintColor ?? .white)
+            effect.tintColor = tint.withAlphaComponent(alpha)
+        }
         let gv = LiquidGlassEffectView(effect: effect)
         gv.frame = frame
         gv.isUserInteractionEnabled = false
@@ -647,28 +859,31 @@ private func storeButtonGlass(_ gv: LiquidGlassEffectView, for v: UIView) {
 
 // Strip all visual material from a passcode button including CALayer-based circle fills.
 private func stripButtonMaterial(in view: UIView) {
-    // Clear any shape/fill layers that draw the button circle
+    // Clear layer contents — iOS 26 draws the circle as layer.contents (CGImage)
+    view.layer.contents = nil
+    view.layer.backgroundColor = UIColor.clear.cgColor
+    view.backgroundColor = .clear
+    view.isOpaque = false
+    // Kill all sublayers — shape fills, gradients, backdrop layers
     for sublayer in view.layer.sublayers ?? [] {
+        sublayer.contents = nil
+        sublayer.backgroundColor = UIColor.clear.cgColor
+        sublayer.opacity = 0
+        sublayer.isHidden = true
         if let shape = sublayer as? CAShapeLayer {
             shape.fillColor = UIColor.clear.cgColor
             shape.strokeColor = UIColor.clear.cgColor
-            shape.backgroundColor = UIColor.clear.cgColor
-        } else {
-            sublayer.backgroundColor = UIColor.clear.cgColor
         }
     }
-    // Clear view-level fills
-    view.backgroundColor = .clear
-    view.layer.backgroundColor = UIColor.clear.cgColor
-    // Recurse into subviews
+    // Recurse into subviews — hide anything that looks like a background fill
     for sub in view.subviews {
         if let vev = sub as? UIVisualEffectView {
-            vev.effect = nil
-            vev.backgroundColor = .clear
+            vev.effect = nil; vev.backgroundColor = .clear
         } else {
             let n = String(describing: type(of: sub))
-            if n.contains("Background") || n.contains("Backdrop") || n.contains("Shadow") {
-                sub.isHidden = true
+            if n.contains("Background") || n.contains("Backdrop") ||
+               n.contains("Shadow") || n.contains("Fill") || n.contains("Material") {
+                sub.isHidden = true; sub.alpha = 0
             } else {
                 stripButtonMaterial(in: sub)
             }
@@ -678,35 +893,70 @@ private func stripButtonMaterial(in view: UIView) {
 
 @_silgen_name("LGApplyToPasscodeButton")
 public func applyToPasscodeButton(_ btn: UIView) {
-    guard isPasscodeEnabled(), btn.bounds.width > 0 else { return }
+    guard isEnabled(), btn.bounds.width > 0, btn.bounds.height > 0 else { return }
 
-    // Fast path — glass already installed; sync frame only.
-    // Do NOT call stripButtonMaterial here: it recurses through all subviews and
-    // modifies CALayer properties while SpringBoard's dismiss animation is running,
-    // which triggers a render-server assertion → safe mode.
+    let r = btn.bounds.width * 0.5
+
+    // Every call: hide the stock circle UIView subview Apple re-creates in layoutSubviews,
+    // and bring labels to front so they stay readable.
+    for sub in btn.subviews {
+        if sub is UILabel || sub is UIStackView || storedButtonGlass(for: btn) === sub {
+            sub.isHidden = false; sub.alpha = 1
+        } else {
+            sub.isHidden = true; sub.alpha = 0
+        }
+    }
+    btn.backgroundColor = .clear
+    btn.layer.backgroundColor = UIColor.clear.cgColor
+
+    // Fast path — glass already installed, just sync geometry then re-front labels.
     if let gv = storedButtonGlass(for: btn) {
-        btn.backgroundColor = .clear
-        btn.layer.backgroundColor = UIColor.clear.cgColor
         gv.frame = btn.bounds
-        gv.layer.cornerRadius = btn.bounds.width * 0.5
+        gv.layer.cornerRadius = r
+        gv.isHidden = false
+        for sub in btn.subviews where sub !== gv {
+            if sub is UILabel || sub is UIStackView {
+                sub.isHidden = false; sub.alpha = 1
+                btn.bringSubviewToFront(sub)
+            }
+        }
         return
     }
 
-    // First-time setup only — strip material once, then add glass.
-    stripButtonMaterial(in: btn)
-    btn.backgroundColor = .clear
+    // First time: also clear layer-level rendering
+    btn.layer.contents = nil
+    btn.isOpaque = false
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    for sub in btn.layer.sublayers ?? [] {
+        if sub.delegate is UIView { continue }
+        sub.isHidden = true; sub.opacity = 0; sub.contents = nil
+        sub.backgroundColor = UIColor.clear.cgColor
+        if let shape = sub as? CAShapeLayer {
+            shape.fillColor = UIColor.clear.cgColor
+            shape.strokeColor = UIColor.clear.cgColor
+        }
+    }
+    CATransaction.commit()
 
-    let effect = LiquidGlassEffect(style: .clear, isNative: false)
+    let effect = LiquidGlassEffect(style: .regular, isNative: false)
     let gv = LiquidGlassEffectView(effect: effect)
     gv.frame = btn.bounds
     gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     gv.isUserInteractionEnabled = false
-    // Passcode buttons are circular
-    gv.layer.cornerRadius = btn.bounds.width * 0.5
+    gv.layer.cornerRadius = r
     gv.layer.cornerCurve  = .continuous
-    gv.clipsToBounds = false
-    btn.insertSubview(gv, at: 0)
+    gv.clipsToBounds = true
+    btn.addSubview(gv)
     storeButtonGlass(gv, for: btn)
+
+    // Bring all labels/stacks on top of glass
+    for sub in btn.subviews where sub !== gv {
+        if sub is UILabel || sub is UIStackView {
+            sub.isHidden = false; sub.alpha = 1
+            btn.bringSubviewToFront(sub)
+        }
+    }
 }
 
 // MARK: - Folder icon (SBFolderIconImageView — the 60×60 rounded-rect grid view)
@@ -759,27 +1009,21 @@ public func hideFolderGlass(_ view: UIView) {
     guard let gv = storedOpenFolderGlass(for: view) else { return }
     CATransaction.begin()
     CATransaction.setDisableActions(true)
-    gv.isHidden = true
-    killBackdropLayers(in: gv.layer)
+    gv.alpha = 0
+    // Keep backdrop layers enabled so they are ready when we fade in.
     CATransaction.commit()
     deferFolderGlass(gv)
 }
 
-/// Keep the glass view fully hidden from the compositor while the folder animates.
-/// isHidden=true removes it from the layer tree entirely — CABackdropLayer does zero work.
 private func deferFolderGlass(_ gv: LiquidGlassEffectView) {
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.52) {
-        // Re-enable backdrop layers against the now-stable background.
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        enableBackdropLayers(in: gv.layer)
-        CATransaction.commit()
-        // One runloop pass so the compositor has captured a clean frame.
-        DispatchQueue.main.async {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            gv.isHidden = false
-            CATransaction.commit()
+    // Increased delay to ensure the folder expansion animation is 100% complete.
+    // iOS folder expansion typically takes ~0.4-0.5s. 0.75s is safe.
+    gv.alpha = 0
+    gv.isHidden = true
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+        gv.isHidden = false
+        UIView.animate(withDuration: 0.3, delay: 0.1, options: .curveEaseOut) {
+            gv.alpha = 1
         }
     }
 }
@@ -817,17 +1061,17 @@ public func applyToFolderBackground(_ view: UIView) {
     }
     killBackdropLayers(in: view.layer)
 
-    let effect = LiquidGlassEffect(style: .clear, isNative: false)
+    var effect = LiquidGlassEffect(style: .clear, isNative: false)
+    effect.fullQuality = true
     let gv = LiquidGlassEffectView(effect: effect)
     gv.frame = view.bounds
     gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     gv.isUserInteractionEnabled = false
     gv.layer.cornerRadius = r
     gv.layer.cornerCurve  = .continuous
-    gv.clipsToBounds = true   // prevent refraction bleeding outside = black ring
-    // Start fully hidden — removed from compositor, CABackdropLayer does no work.
+    gv.clipsToBounds = false  // Disable clipping during folder scale to fix black bars
+    gv.alpha = 0
     gv.isHidden = true
-    killBackdropLayers(in: gv.layer)
     view.insertSubview(gv, at: 0)
     storeOpenFolderGlass(gv, for: view)
 
@@ -1040,8 +1284,14 @@ public func applyToBanner(_ banner: UIView) {
 
     stripNotificationBackground(in: banner, glassView: nil)
 
-    // .regular style has a dynamic tintColor: dark glass in dark mode, light glass in light mode.
-    let effect = LiquidGlassEffect(style: .regular, isNative: false)
+    let isDark = banner.traitCollection.userInterfaceStyle == .dark || UIScreen.main.traitCollection.userInterfaceStyle == .dark
+    let effect = LiquidGlassEffect(style: .regularHighBlur, isNative: false)
+    if DeviceCapability.isLowEnd {
+        // Standard alpha for light mode, slightly higher for dark mode to keep grey visible.
+        let alpha = isDark ? 0.15 : DeviceCapability.tintAlpha
+        let tint = isDark ? UIColor(white: 0.28, alpha: 1.0) : (effect.tintColor ?? .white)
+        effect.tintColor = tint.withAlphaComponent(alpha)
+    }
     let gv = LiquidGlassEffectView(effect: effect)
     gv.frame = banner.bounds
     gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -1149,11 +1399,14 @@ public func applyToNotificationCell(_ cell: UIView) {
 
     // First-time setup — all heavy work runs exactly once
     stripNotificationBackground(in: cell, glassView: nil)
-
+    
+    let isDark = cell.traitCollection.userInterfaceStyle == .dark || UIScreen.main.traitCollection.userInterfaceStyle == .dark
     let effect = LiquidGlassEffect(style: .regular, isNative: false)
     if DeviceCapability.isLowEnd {
-        // Slightly reduce tint on older GPUs to ease compositing pressure
-        effect.tintColor = UIColor.white.withAlphaComponent(DeviceCapability.tintAlpha)
+        // Standard alpha for light mode, slightly higher for dark mode to keep grey visible.
+        let alpha = isDark ? 0.15 : DeviceCapability.tintAlpha
+        let tint = isDark ? UIColor(white: 0.28, alpha: 1.0) : (effect.tintColor ?? .white)
+        effect.tintColor = tint.withAlphaComponent(alpha)
     }
     let gv = LiquidGlassEffectView(effect: effect)
     gv.frame = cell.bounds
@@ -1382,4 +1635,169 @@ public func teardownSliderOverlay(_ s: UISlider) {
     objc_setAssociatedObject(s, &KSl.fwd, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     for sublayer in s.layer.sublayers ?? [] { sublayer.opacity = 1 }
     s.backgroundColor = nil
+}
+
+// MARK: - Lock screen clock glass (CSProminentTimeView / SBFLockScreenDateView)
+
+private func storedClockGlass(for v: UIView) -> LiquidGlassEffectView? {
+    objc_getAssociatedObject(v, &K.cl) as? LiquidGlassEffectView
+}
+private func storeClockGlass(_ gv: LiquidGlassEffectView, for v: UIView) {
+    objc_setAssociatedObject(v, &K.cl, gv, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
+private let kLGClockGlassEffectTag: Int = 0x4C474356   // "LGCV"
+
+// Renders each UILabel descendant's layer into a bitmap — but with all background
+// colors temporarily zeroed so only the actual glyphs leave non-transparent pixels.
+// Alpha-threshold then converts the result into a binary glyph mask (white = show glass).
+private func buildClockGlyphMask(host: UIView, exclude gv: UIView?) -> UIImage? {
+    let hostBounds = host.bounds
+    guard hostBounds.width > 1, hostBounds.height > 1 else { return nil }
+    let scale = UIScreen.main.scale
+
+    UIGraphicsBeginImageContextWithOptions(hostBounds.size, false, scale)
+    defer { UIGraphicsEndImageContext() }
+    guard let ctx = UIGraphicsGetCurrentContext() else { return nil }
+
+    var drawnCount = 0
+
+    func renderLabel(_ v: UIView) {
+        guard v !== gv else { return }
+        if v is UILabel {
+            let frameInHost = v.convert(v.bounds, to: host)
+            guard frameInHost.width > 1, frameInHost.height > 1 else {
+                v.subviews.forEach { renderLabel($0) }; return
+            }
+            // Strip all background colors so only glyph pixels survive render.
+            let savedVBg  = v.backgroundColor
+            let savedLBg  = v.layer.backgroundColor
+            v.backgroundColor          = .clear
+            v.layer.backgroundColor    = UIColor.clear.cgColor
+            // Strip sublayer backgrounds (e.g. SBUILegibilityLabel shadow layer).
+            var savedSubs: [(CALayer, CGColor?)] = []
+            for sub in v.layer.sublayers ?? [] {
+                savedSubs.append((sub, sub.backgroundColor))
+                sub.backgroundColor = UIColor.clear.cgColor
+            }
+
+            ctx.saveGState()
+            ctx.translateBy(x: frameInHost.minX, y: frameInHost.minY)
+            v.layer.render(in: ctx)
+            ctx.restoreGState()
+
+            // Restore exactly what we changed.
+            v.backgroundColor       = savedVBg
+            v.layer.backgroundColor = savedLBg
+            for (sub, bg) in savedSubs { sub.backgroundColor = bg }
+            drawnCount += 1
+        }
+        v.subviews.forEach { renderLabel($0) }
+    }
+    renderLabel(host)
+
+    // Fallback: no UILabel subclasses found — approximate with current time string.
+    if drawnCount == 0 {
+        let df = DateFormatter()
+        df.locale = .current
+        df.setLocalizedDateFormatFromTemplate("jmm")
+        let timeStr = df.string(from: Date())
+        let fontSize = hostBounds.height * 0.76
+        let font = UIFont.systemFont(ofSize: fontSize, weight: .bold)
+        let para = NSMutableParagraphStyle(); para.alignment = .center
+        let textRect = CGRect(x: 0,
+                              y: (hostBounds.height - fontSize * 1.2) / 2,
+                              width: hostBounds.width,
+                              height: fontSize * 1.4)
+        (timeStr as NSString).draw(in: textRect, withAttributes: [
+            .font: font, .foregroundColor: UIColor.white, .paragraphStyle: para
+        ])
+    }
+
+    guard let rendered = UIGraphicsGetImageFromCurrentImageContext(),
+          let cgSrc = rendered.cgImage else { return nil }
+
+    // Alpha-threshold: any pixel with alpha > 8 → solid white; all others → transparent.
+    let pw = cgSrc.width, ph = cgSrc.height
+    guard pw > 0, ph > 0 else { return nil }
+    let bpr = pw * 4
+    guard let raw = calloc(ph * bpr, 1) else { return nil }
+    defer { free(raw) }
+    guard let bCtx = CGContext(data: raw, width: pw, height: ph,
+                               bitsPerComponent: 8, bytesPerRow: bpr,
+                               space: CGColorSpaceCreateDeviceRGB(),
+                               bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { return nil }
+    bCtx.draw(cgSrc, in: CGRect(x: 0, y: 0, width: pw, height: ph))
+    let px = raw.assumingMemoryBound(to: UInt8.self)
+    var nonEmpty = 0
+    for i in stride(from: 0, to: ph * bpr, by: 4) {
+        if px[i + 3] > 8 {
+            px[i] = 255; px[i+1] = 255; px[i+2] = 255; px[i+3] = 255
+            nonEmpty += 1
+        } else {
+            px[i] = 0; px[i+1] = 0; px[i+2] = 0; px[i+3] = 0
+        }
+    }
+    guard nonEmpty > 100, let maskedCG = bCtx.makeImage() else { return nil }
+    return UIImage(cgImage: maskedCG, scale: scale, orientation: .up)
+}
+
+@_silgen_name("LGApplyToLockClock")
+public func applyToLockClock(_ host: UIView) {
+    guard isEnabled(), host.bounds.width > 0, host.bounds.height > 0 else { return }
+
+    let gv: LiquidGlassEffectView
+    if let existing = storedClockGlass(for: host) {
+        gv = existing
+        // Re-apply glyph mask every layout pass (time changes) — build before hiding.
+        if let maskImg = buildClockGlyphMask(host: host, exclude: gv) {
+            let ml = CALayer()
+            ml.frame = gv.bounds
+            ml.contents = maskImg.cgImage
+            ml.contentsScale = maskImg.scale
+            ml.contentsGravity = .resize
+            gv.layer.mask = ml
+        }
+        host.sendSubviewToBack(gv)
+        // Keep original subviews hidden every layout pass.
+        for sub in host.subviews where sub !== gv {
+            sub.isHidden = true
+        }
+        return
+    }
+
+    // Build mask from the labels before we hide them.
+    let maskImg = buildClockGlyphMask(host: host, exclude: nil)
+
+    // clockGlass: zero fill, strong fresnel rim + glare — looks like real glass, fully transparent.
+    let effect = LiquidGlassEffect(style: .clockGlass, isNative: false)
+    gv = LiquidGlassEffectView(effect: effect)
+    gv.tag = kLGClockGlassEffectTag
+    gv.frame = host.bounds
+    gv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    gv.isUserInteractionEnabled = false
+    gv.clipsToBounds = false
+    gv.alpha = 0
+    host.insertSubview(gv, at: 0)
+    storeClockGlass(gv, for: host)
+
+    // Apply glyph mask so glass is shaped to the digit outlines.
+    if let maskImg = maskImg {
+        let ml = CALayer()
+        ml.frame = gv.bounds
+        ml.contents = maskImg.cgImage
+        ml.contentsScale = maskImg.scale
+        ml.contentsGravity = .resize
+        gv.layer.mask = ml
+    }
+
+    // Hide original Apple clock layers — glass is the only visible layer.
+    for sub in host.subviews where sub !== gv {
+        sub.isHidden = true
+    }
+
+    DispatchQueue.main.async {
+        UIView.animate(withDuration: 0.25) { gv.alpha = 1.0 }
+    }
 }

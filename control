@@ -8,8 +8,8 @@ Description: [EXPERIMENTAL] Gives iOS UI elements a real-time Metal-rendered Liq
  - Quick action toggles and passcode buttons are glassed
  - Notifications on the Home Screen are also glass
  - Dock, switches, and sliders use LiquidGlassKit
- - For iOS 14–18, rootful, rootless, and roothide supported
+ - For iOS 14-18, rootful, rootless, and roothide supported
 Maintainer: Your Name <you@example.com>
 Author: Your Name <you@example.com>
 Section: Tweaks
-Depends: mobilesubstrate | substitute | libhooker, preferenceloader
+Depends: mobilesubstrate | substitute | libhooker | ellekit, preferenceloader

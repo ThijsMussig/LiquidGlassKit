@@ -5,8 +5,9 @@
 # ---------------------------------------------------------------
 
 export ARCHS = arm64 arm64e
-# clang:<sdk-version>:<deployment-target>  — iOS 26 SDK, deploy back to iOS 14
-export TARGET = iphone:clang:26.0:14.0
+# Use the latest available iOS SDK — works on both local machines and CI runners.
+# clang:<sdk-version>:<deployment-target>
+export TARGET = iphone:clang:latest:14.0
 # Default scheme is rootless. Pass THEOS_PACKAGE_SCHEME=roothide on the command
 # line (make THEOS_PACKAGE_SCHEME=roothide package) to produce the roothide .deb.
 # Both schemes install to /var/jb — RootHide remaps that to its hidden path at runtime.
